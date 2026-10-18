@@ -10,10 +10,14 @@ BUILD      := build
 # Enable RTL traces: make sim DEFS=-DSTORNADO_DEBUG  (or: make sim-debug)
 DEFS       ?=
 
-.PHONY: all test test-host sim sim-debug sim-verilator cli lint regs package clean
+.PHONY: all test test-host lint-py sim sim-debug sim-verilator cli lint regs package clean
 
 ## Everything runnable without hardware
 test: test-host
+
+## Python static analysis
+lint-py:
+	ruff check .
 
 all: test-host
 

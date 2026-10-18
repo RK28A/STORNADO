@@ -12,6 +12,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r host/requirements.txt
+      - run: ruff check .                      # Python static analysis
       - run: python -m pytest host/tests -q   # includes the C<->Python vector test (gcc)
       - run: python tools/gen_register_doc.py  # generator must run
 

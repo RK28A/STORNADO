@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib import Frame, MsgType, MockTransport, SerialTransport  # noqa: E402
+from lib import Frame, MockTransport, MsgType, SerialTransport  # noqa: E402
 
 
 def main():
@@ -28,9 +28,12 @@ def main():
     i = 0
     try:
         while a.iterations == 0 or i < a.iterations:
-            tp.send(Frame(MsgType.GET_STATUS)); st = tp.recv().payload
-            tp.send(Frame(MsgType.GET_TEMPERATURE)); (t,) = struct.unpack("<i", tp.recv().payload)
-            tp.send(Frame(MsgType.GET_COUNTERS)); r, w, e = struct.unpack("<III", tp.recv().payload)
+            tp.send(Frame(MsgType.GET_STATUS))
+            st = tp.recv().payload
+            tp.send(Frame(MsgType.GET_TEMPERATURE))
+            (t,) = struct.unpack("<i", tp.recv().payload)
+            tp.send(Frame(MsgType.GET_COUNTERS))
+            r, w, e = struct.unpack("<III", tp.recv().payload)
             link, nvme, width, speed = struct.unpack("<BBBB", st)
             print(f"\rlink={link} nvme_rdy={nvme} x{width} gen{speed} | "
                   f"{t}C | R={r} W={w} E={e}   ", end="", flush=True)

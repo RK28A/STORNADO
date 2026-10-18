@@ -15,7 +15,7 @@ hardware · Win = proven under Windows.
 | Doorbells | ✅ | ✅ | ✅ | — | — | — | tb_init_sequence |
 | Queue manager (SQ/CQ, phase) | ✅ | ✅ | ✅ | — | — | — | tb_init_sequence + tb_queue_mgr (CQ wrap) |
 | Command decoder | ✅ | ✅ | ✅ | — | — | — | tb_cmd_decoder (opcode classification) |
-| DMA engine (PRP walk) | ✅ | ✅ | ✅ | — | — | — | tb_dma_prp (3-page, PRP list) |
+| DMA engine (PRP walk) | ✅ | ✅ | ✅ | — | — | — | tb_dma_prp (SV) + prp_model oracle (chaining) |
 | Storage backend (BRAM) | ✅ | ✅ | ✅ | — | — | — | tb_storage_backend |
 | USB framer (RTL) | ✅ | ✅ | ✅ | — | — | — | tb_usb_framer (CRC good/bad, empty payload) |
 | USB protocol (codec) | ✅ | ✅ | ✅ | n/a | — | — | test_protocol + test_c_vectors |

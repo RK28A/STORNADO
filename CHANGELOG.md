@@ -6,7 +6,10 @@ Commit convention: `type: summary` (feat, fix, docs, test, chore, refactor).
 ## [Unreleased]
 ### Added
 - Real PRP walk in the DMA engine (PRP1 offset, PRP2-as-page vs PRP2-as-list,
-  page-boundary split, list chaining); `tb_dma_prp` host-memory model.
+  page-boundary split, list chaining); `tb_dma_prp` host-memory model and a
+  Python reference model `tools/prp_model.py` (`test_prp_model`) that proves the
+  algorithm without a Verilog simulator.
+- Python static analysis with ruff (CI + `make lint-py`).
 - Testbenches: `tb_async_fifo` (dual-clock CDC), `tb_storage_backend` (LBA rw + OOB),
   `tb_usb_framer` (CRC good/bad + empty payload), `tb_cmd_decoder` (opcode
   classification), `tb_queue_mgr` (CQ wrap + phase toggle).

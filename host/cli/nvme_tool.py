@@ -26,7 +26,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib import Frame, MsgType, MockTransport, SerialTransport, TransportError  # noqa: E402
+from lib import Frame, MockTransport, MsgType, SerialTransport, TransportError  # noqa: E402
 
 EXIT_OK, EXIT_DEVICE_ERROR, EXIT_USAGE, EXIT_TRANSPORT = 0, 1, 2, 3
 
@@ -126,7 +126,7 @@ COMMANDS = {
 
 
 def _write_csv(path: str, cmd: str, result: dict):
-    row = {"timestamp": dt.datetime.now(dt.timezone.utc).isoformat(), "command": cmd}
+    row = {"timestamp": dt.datetime.now(dt.UTC).isoformat(), "command": cmd}
     for k, v in result.items():
         row[k] = json.dumps(v) if isinstance(v, (dict, list)) else v
     p = Path(path)

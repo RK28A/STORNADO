@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import struct
 import zlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum
 
 MAGIC = b"STRN"
@@ -77,7 +77,7 @@ class Frame:
         return header + self.payload + struct.pack("<I", crc)
 
     @classmethod
-    def decode(cls, buf: bytes) -> "Frame":
+    def decode(cls, buf: bytes) -> Frame:
         if len(buf) < HEADER_LEN + 4:
             raise ProtocolError("frame too short")
         magic, ver, hlen, mtype, flags, seq, plen = struct.unpack(

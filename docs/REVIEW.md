@@ -22,7 +22,7 @@ validated on your side / in CI with Icarus + Verilator). The Python tests pass
 |---|---|---|---|
 | S1 | Symbolic `RDY_DELAY` (!= real NVMe init latency) | `nvme_regs` | **[ASSUME]** - tune to real behavior |
 | S2 | ~~Simplified CQ wrap~~ FIXED: wraps at the configured CQ size + phase toggle | `nvme_queue_mgr` | done, tb_queue_mgr |
-| S3 | **No real PRP list walk** (PRP2 = list pointer if >2 pages); symbolic per-page DMA advance | `dma_engine` | `TODO` PART G - the DMA core is still to write |
+| S3 | ~~No real PRP list walk~~ IMPLEMENTED: PRP1 offset, PRP2-as-page vs list, page split, list chaining | `dma_engine` | tb_dma_prp (SV, CI) + `tools/prp_model.py` Python oracle (`test_prp_model`, incl. chaining) |
 | S4 | ~~`async_fifo` has no testbench~~ FIXED: `tb_async_fifo` (dual-clock) | `rtl/common` | done |
 | S5 | `inside` operator (opcode classification) | `nvme_cmd_decoder` | tb_cmd_decoder added; confirm under Icarus -g2012 in CI |
 | S6 | `pcie_wrapper` = **stub** (`link_up=0` tied): the top establishes no link as-is | `rtl/pcie` | normal - depends on the Hard IP (`TODO-IP`) |

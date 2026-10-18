@@ -11,7 +11,7 @@ import io
 import logging
 import struct
 
-from .protocol import Frame, MsgType, ErrorCode, VERSION, read_frame
+from .protocol import VERSION, ErrorCode, Frame, MsgType, read_frame
 
 log = logging.getLogger("stornado.transport")
 
