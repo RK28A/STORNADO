@@ -35,9 +35,9 @@ sim-verilator:
 	verilator --binary -j 0 -Wall --top-module tb_sync_fifo $(RTL_COMMON) sim/unit/tb_sync_fifo.sv -o tb_fifo_vl
 	./obj_dir/tb_fifo_vl
 
-## Lint (optional, verible)
+## Lint (optional, verible) - portable, fails on real lint errors
 lint:
-	verible-verilog-lint rtl/**/*.sv || true
+	bash scripts/lint.sh
 
 $(BUILD):
 	mkdir -p $(BUILD)

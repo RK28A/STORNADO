@@ -11,6 +11,7 @@
 | `risk-register.md` | Risks: prob/severity/detection/mitigation |
 | `variants-costs.md` | Variants A/B/C, costs, trade-offs |
 | `REVIEW.md` | Audit: fixed bugs + points to watch, how to enable debug |
+| `ROADMAP.md` | Full P0/P1/P2 roadmap with exit gates and first sprint |
 
 Mandatory reporting format (PART N): present at the end of `phase0` and `phase1`,
 to reproduce at each completed phase.

@@ -86,6 +86,8 @@ instantiated in `rtl/pcie/pcie_wrapper.sv` (the only device-specific file).
 | 8 Test milestones | `docs/test-plan.md` | 🟡 M1/M4 ok |
 | 9 Final package | `docs/` | 🟡 in progress |
 
+Full task-level plan with exit gates: `docs/ROADMAP.md`.
+
 ## Hardware to obtain
 See `docs/variants-costs.md` and `docs/phase1-architecture.md` (BOM). Starting
 reference: an Artix-7 M.2 board (NiteFury type) + a USB PHY (FT2232H or FT601).
