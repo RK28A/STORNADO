@@ -52,17 +52,8 @@ extern void usb_write(const uint8_t *src, uint32_t len);
 extern int32_t hw_read_temperature_c(void);         /* stub matériel */
 extern void hw_read_nvme_state(uint8_t *en, uint8_t *rdy, uint8_t *cfs);
 
-/* CRC-32 IEEE 802.3, little-endian, identique au codec Python/RTL. */
-static uint32_t crc32(const uint8_t *d, uint32_t n)
-{
-    uint32_t c = 0xFFFFFFFFu;
-    for (uint32_t i = 0; i < n; i++) {
-        c ^= d[i];
-        for (int k = 0; k < 8; k++)
-            c = (c & 1u) ? (c >> 1) ^ 0xEDB88320u : (c >> 1);
-    }
-    return c ^ 0xFFFFFFFFu;
-}
+/* CRC-32 IEEE 802.3, little-endian, identique au codec Python/RTL
+ * (calculé en ligne dans send_frame sur header+payload). */
 
 static void send_frame(uint16_t type, uint32_t seq,
                        const uint8_t *payload, uint32_t plen)
