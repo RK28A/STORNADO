@@ -1,0 +1,25 @@
+# build / sim
+build/
+obj_dir/
+*.vvp
+*.vcd
+*.fst
+*.out
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# vivado / vendor
+*.jou
+*.log
+.Xil/
+vivado*.str
+*.bit
+*.ltx
+
+# os
+.DS_Store
