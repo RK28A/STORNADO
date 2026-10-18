@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Tableau de bord texte minimal (option GUI, PARTIE I).
+"""Minimal text dashboard (optional GUI, PART I).
 
-Rafraîchit l'état lien/NVMe, la température et les compteurs. Fonctionne avec
-le transport mock si --port est omis. Une GUI riche (Qt/Tk/web) peut réutiliser
-host/lib tel quel ; ceci est le socle.
+Refreshes link/NVMe state, temperature and counters. Works with the mock
+transport when --port is omitted. A richer GUI (Qt/Tk/web) can reuse host/lib
+as-is; this is the base.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port")
     ap.add_argument("--interval", type=float, default=1.0)
-    ap.add_argument("--iterations", type=int, default=0, help="0 = infini")
+    ap.add_argument("--iterations", type=int, default=0, help="0 = infinite")
     a = ap.parse_args()
     tp = SerialTransport(a.port) if a.port else MockTransport()
 

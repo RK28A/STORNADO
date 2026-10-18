@@ -1,8 +1,8 @@
 # tests/
 
-Emplacement des tests d'intégration bout-en-bout (hôte ↔ appareil réel) :
-scénarios aller-retour fichier, endurance, DMA sur buffers de test (jalons 6, 8, 9
-de `docs/test-plan.md`). À remplir une fois le matériel disponible.
+Location for end-to-end integration tests (host <-> real device): file
+round-trip scenarios, endurance, DMA to test buffers (milestones 6, 8, 9 of
+`docs/test-plan.md`). To fill in once hardware is available.
 
-Les tests unitaires du protocole hôte sont dans `host/tests/`.
-Les testbenches RTL sont dans `sim/`.
+Host-protocol unit tests live in `host/tests/`.
+RTL testbenches live in `sim/`.

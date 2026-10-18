@@ -1,8 +1,8 @@
 # constraints/
 
-Contraintes de placement/timing, **spécifiques à la carte et au composant**.
-Placeholders documentés — à compléter avec le fichier maître de ta carte
-(NiteFury : voir le dépôt RHS Research) et le paramétrage du Hard IP PCIe.
+Placement/timing constraints, **specific to the board and the device**.
+Documented placeholders - to complete with your board's master file (NiteFury:
+see the RHS Research repo) and the PCIe Hard IP setup.
 
-- `stornado_artix7.xdc` — squelette XDC (horloges, PCIe, USB, reset). Les broches
-  réelles dépendent de la carte : ne pas utiliser tel quel.
+- `stornado_artix7.xdc` - XDC skeleton (clocks, PCIe, USB, reset). The real pins
+  depend on the board: do not use as-is.

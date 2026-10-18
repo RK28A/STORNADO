@@ -1,6 +1,6 @@
-// tb_nvme_regs.sv — Vérifie CAP/VS en lecture et la séquence CC.EN -> CSTS.RDY.
-// Reproduit le début de l'init contrôleur NVMe (section 3.1.5).
-// Constructions portables uniquement (pas de break/fork).
+// tb_nvme_regs.sv - Checks CAP/VS reads and the CC.EN -> CSTS.RDY sequence.
+// Reproduces the start of NVMe controller init (section 3.1.5).
+// Portable constructs only (no break/fork).
 `timescale 1ns/1ps
 import nvme_pkg::*;
 
@@ -43,24 +43,24 @@ module tb_nvme_regs;
     if (v !== VS_VALUE) begin $display("FAIL VS: %08h", v); errors++; end
 
     rd(OFF_CSTS, v);
-    if (v[0] !== 1'b0) begin $display("FAIL RDY devrait etre 0 avant EN"); errors++; end
+    if (v[0] !== 1'b0) begin $display("FAIL RDY should be 0 before EN"); errors++; end
 
-    wr(OFF_AQA, 32'h001F_001F);          // 32 entrées admin
+    wr(OFF_AQA, 32'h001F_001F);          // 32 admin entries
     wr(OFF_ASQ0, 32'h0010_0000);
     wr(OFF_ACQ0, 32'h0020_0000);
     wr(OFF_CC, 32'h0046_0001);           // EN=1
 
-    // attendre RDY (polling borné)
+    // wait for RDY (bounded polling)
     v = 0; guard = 0;
     while (v[0] !== 1'b1 && guard < 50) begin rd(OFF_CSTS, v); guard++; end
-    if (v[0] !== 1'b1) begin $display("FAIL CSTS.RDY jamais atteint"); errors++; end
+    if (v[0] !== 1'b1) begin $display("FAIL CSTS.RDY never reached"); errors++; end
     if (asq_size !== 12'd32) begin $display("FAIL ASQS: %0d", asq_size); errors++; end
 
-    // clear EN -> RDY retombe
+    // clear EN -> RDY drops
     wr(OFF_CC, 32'h0046_0000);
     repeat (10) @(posedge clk);
     rd(OFF_CSTS, v);
-    if (v[0] !== 1'b0) begin $display("FAIL RDY devrait retomber"); errors++; end
+    if (v[0] !== 1'b0) begin $display("FAIL RDY should drop"); errors++; end
 
     if (errors == 0) $display("TB_NVME_REGS: PASS");
     else             $display("TB_NVME_REGS: FAIL (%0d)", errors);

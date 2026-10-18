@@ -1,93 +1,94 @@
 # STORNADO
 
-**STOR**age + tor**NADO** — un contrôleur de stockage **NVMe sur FPGA**, format
-M.2 2280, qui s'énumère en PCIe classe `0x010802` et se monte sous Windows via le
-pilote natif `stornvme.sys`, sans driver tiers. Clin d'œil assumé à `stornvme`.
+**STOR**age + tor**NADO** - an **NVMe storage controller on FPGA**, M.2 2280 form
+factor, that enumerates as PCIe class `0x010802` and mounts under Windows via the
+native `stornvme.sys` driver, with no third-party driver. A deliberate nod to
+`stornvme`.
 
-> **Statut : squelette d'ingénierie + socle logiciel testé.** Ce dépôt contient
-> une architecture de référence, du RTL SystemVerilog synthétisable de départ,
-> des testbenches, les outils hôte (CLI/protocole) **fonctionnels**, et la doc
-> complète par phase. **Rien n'est « prêt à flasher »** : les blocs dépendants du
-> Hard IP PCIe et du matériel réel sont balisés `TODO-IP` / `TODO-SPEC`. Aucun
-> résultat matériel (bitstream, oscillo, test Windows) n'est fourni tant qu'il
-> n'a pas été mesuré.
+> **Status: engineering skeleton + tested software base.** This repo contains a
+> reference architecture, starter synthesizable SystemVerilog RTL, testbenches,
+> **working** host tools (CLI/protocol), and full per-phase documentation.
+> **Nothing is "ready to flash":** blocks that depend on the PCIe Hard IP and
+> real hardware are marked `TODO-IP` / `TODO-SPEC`. No hardware result
+> (bitstream, scope capture, Windows test) is provided until it has been
+> measured.
 
-## Ce que fait (et ne fait pas) le projet
+## What the project does (and does not)
 
-- ✅ Vrai contrôleur NVMe : registres, queues Admin/IO, commandes, backend, DMA de stockage.
-- ✅ DMA **borné** aux PRP/buffers fournis par l'hôte ou réservés au banc de test.
-- ✅ Lien USB **diagnostic**, séparé du chemin stockage.
-- 🚫 Aucun accès arbitraire à la RAM, aucune exfiltration, aucune furtivité. Bus
-  Master ≠ droit de lecture mémoire arbitraire (voir `docs/risk-register.md`).
+- ✅ Real NVMe controller: registers, Admin/IO queues, commands, backend, storage DMA.
+- ✅ DMA **bounded** to the PRPs/buffers provided by the host or reserved for the test bench.
+- ✅ **Diagnostic** USB link, separate from the storage path.
+- 🚫 No arbitrary RAM access, no exfiltration, no stealth. Bus Master != arbitrary
+  memory read permission (see `docs/risk-register.md`).
 
-## Arborescence
+## Layout
 
 ```
-rtl/        RTL SystemVerilog : top, pcie(wrapper IP), nvme, dma, memory, usb, common
-firmware/   dispatch diagnostic (C) pour soft-core/MCU
-host/        outils PC secondaire : lib (protocole+transport), cli, gui, tests
-sim/         testbenches unit + integration (Icarus/Verilator)
-constraints/ XDC/SDC (placeholders documentés)
-pcb/         notes PCB M.2 (variante C)
+rtl/        SystemVerilog RTL: top, pcie(IP wrapper), nvme, dma, memory, usb, common
+firmware/   diagnostic dispatch (C) for a soft-core/MCU
+host/        secondary-PC tools: lib (protocol+transport), cli, gui, tests
+sim/         unit + integration testbenches (Icarus/Verilator)
+constraints/ XDC/SDC (documented placeholders)
+pcb/         M.2 PCB notes (variant C)
 scripts/     setup, sim, lint
-docs/        phases 0→9, carte registres, protocole USB, risques, variantes, tests
-tests/       emplacement tests d'intégration bout-en-bout
+docs/        phases 0->9, register map, USB protocol, risks, variants, tests
+tests/       end-to-end integration test location
 ```
 
-## Démarrage rapide (how-to-setup)
+## Quick start (how-to-setup)
 
-### 1. Prérequis
+### 1. Prerequisites
 ```bash
-# Debian/Ubuntu — outils de simulation et Python
+# Debian/Ubuntu - simulation tools and Python
 sudo apt-get install -y iverilog verilator python3 python3-pip
 pip3 install -r host/requirements.txt    # pyserial, pytest
 ```
-Pour la synthèse FPGA : **Xilinx Vivado** (édition WebPACK gratuite, couvre
-l'Artix-7). Pour le lint : `verible-verilog-lint` (optionnel).
+For FPGA synthesis: **Xilinx Vivado** (free WebPACK edition, covers Artix-7).
+For linting: `verible-verilog-lint` (optional).
 
-### 2. Lancer ce qui tourne sans matériel
+### 2. Run what works with no hardware
 ```bash
-make test-host      # tests du protocole USB (Python)  -> 7 passed
-make sim            # testbenches RTL via Icarus        -> *: PASS
-make sim-debug      # idem avec traces RTL (STORNADO_DEBUG)
-make cli            # démo CLI sur transport mock (sans FPGA)
+make test-host      # USB protocol tests (Python)   -> 7 passed
+make sim            # RTL testbenches via Icarus     -> *: PASS
+make sim-debug      # same with RTL traces (STORNADO_DEBUG)
+make cli            # CLI demo over the mock transport (no FPGA)
 ```
 
-Debug : `make sim-debug` (RTL), `nvme_tool.py --debug <cmd>` (hôte, trace TX/RX),
-`-DSTORNADO_DEBUG` (firmware). Audit des bugs/limites : `docs/REVIEW.md`.
+Debug: `make sim-debug` (RTL), `nvme_tool.py --debug <cmd>` (host, traces TX/RX),
+`-DSTORNADO_DEBUG` (firmware). Bug/limitation audit: `docs/REVIEW.md`.
 
-### 3. CLI diagnostic (PC secondaire)
+### 3. Diagnostic CLI (secondary PC)
 ```bash
-# sans matériel (émulateur in-process)
+# no hardware (in-process emulator)
 python3 host/cli/nvme_tool.py self-test --json
 python3 host/cli/nvme_tool.py status
 
-# avec le lien USB réel
+# with the real USB link
 python3 host/cli/nvme_tool.py --port /dev/ttyUSB0 info
 ```
 
-### 4. Synthèse (quand tu as la carte)
-Voir `docs/phase1-architecture.md` et `constraints/`. Le Hard IP PCIe s'instancie
-dans `rtl/pcie/pcie_wrapper.sv` (seul fichier spécifique au composant).
+### 4. Synthesis (once you have the board)
+See `docs/phase1-architecture.md` and `constraints/`. The PCIe Hard IP is
+instantiated in `rtl/pcie/pcie_wrapper.sv` (the only device-specific file).
 
-## Feuille de route
+## Roadmap
 
-| Phase | Doc | État |
+| Phase | Doc | Status |
 |---|---|---|
-| 0 Faisabilité | `docs/phase0-faisabilite.md` | ✅ analyse |
-| 1 Architecture | `docs/phase1-architecture.md` | ✅ ébauche |
-| 2 Énumération Windows | `docs/phase2-windows-enumeration.md` | ✅ spécifiée |
-| 3 RTL & sim | `rtl/`, `sim/` | 🟡 socle + TODO-IP |
-| 4 DMA & IOMMU | `rtl/dma/`, `docs/` | 🟡 squelette |
-| 5 USB | `rtl/usb/`, `docs/usb-protocol.md` | ✅ protocole + framer |
-| 6 Outils PC #2 | `host/` | ✅ CLI/lib testés |
-| 7 Perf/fiabilité | `docs/test-plan.md` | ⬜ matériel requis |
-| 8 Jalons de test | `docs/test-plan.md` | 🟡 J1/J4 ok |
-| 9 Dossier final | `docs/` | 🟡 en cours |
+| 0 Feasibility | `docs/phase0-feasibility.md` | ✅ analysis |
+| 1 Architecture | `docs/phase1-architecture.md` | ✅ draft |
+| 2 Windows enumeration | `docs/phase2-windows-enumeration.md` | ✅ specified |
+| 3 RTL & sim | `rtl/`, `sim/` | 🟡 base + TODO-IP |
+| 4 DMA & IOMMU | `rtl/dma/`, `docs/` | 🟡 skeleton |
+| 5 USB | `rtl/usb/`, `docs/usb-protocol.md` | ✅ protocol + framer |
+| 6 Secondary-PC tools | `host/` | ✅ CLI/lib tested |
+| 7 Perf/reliability | `docs/test-plan.md` | ⬜ hardware required |
+| 8 Test milestones | `docs/test-plan.md` | 🟡 M1/M4 ok |
+| 9 Final package | `docs/` | 🟡 in progress |
 
-## Matériel à te procurer
-Voir `docs/variants-costs.md` et `docs/phase1-architecture.md` §BOM. Référence de
-départ : carte M.2 Artix-7 (type NiteFury) + un PHY USB (FT2232H ou FT601).
+## Hardware to obtain
+See `docs/variants-costs.md` and `docs/phase1-architecture.md` (BOM). Starting
+reference: an Artix-7 M.2 board (NiteFury type) + a USB PHY (FT2232H or FT601).
 
-## Licence
-Code sous licence MIT (voir `LICENSE`). Projet pédagogique.
+## License
+Code under the MIT license (see `LICENSE`). Educational project.

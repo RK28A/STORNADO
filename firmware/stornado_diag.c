@@ -1,15 +1,15 @@
-/* stornado_diag.c — Dispatch firmware du protocole diagnostic (SQUELETTE).
+/* stornado_diag.c - Diagnostic protocol dispatch firmware (SKELETON).
  *
- * Cible : soft-core (RISC-V/MicroBlaze/Nios) ou petit MCU pilotant le PHY USB.
- * Rôle : décoder les cadres STORNADO (voir docs/usb-protocol.md), répondre aux
- * commandes de diagnostic bornées aux buffers embarqués / banc de test.
+ * Target: soft-core (RISC-V/MicroBlaze/Nios) or small MCU driving the USB PHY.
+ * Role: decode STORNADO frames (see docs/usb-protocol.md), answer diagnostic
+ * commands bounded to embedded / test-bench buffers.
  *
- * PORTÉE : aucun accès à la mémoire hôte. WRITE_TEST_PATTERN /
- * READ_DIAGNOSTIC_BUFFER opèrent UNIQUEMENT sur diag_buffer[] ci-dessous.
+ * SCOPE: no access to host memory. WRITE_TEST_PATTERN / READ_DIAGNOSTIC_BUFFER
+ * operate ONLY on diag_buffer[] below.
  *
- * ÉTAT : logique de framing/dispatch posée ; les lectures de capteurs
- * (température, tensions) et l'accès aux registres NVMe via le bus de contrôle
- * sont des stubs à relier au matériel. Ne pas présenter comme testé sur cible.
+ * STATE: framing/dispatch logic in place; sensor reads (temperature, voltages)
+ * and access to NVMe registers over the control bus are stubs to wire to the
+ * hardware. Do not present as tested on target.
  */
 #include <stdint.h>
 #include <string.h>
@@ -22,8 +22,8 @@
 #define HEADER_LEN 18u
 #define DIAG_BUFFER_BYTES 4096u
 
-/* Debug activable à la compilation : -DSTORNADO_DEBUG.
- * dbg_puts() est un stub à relier à l'UART de debug de la cible. */
+/* Debug enabled at compile time: -DSTORNADO_DEBUG.
+ * dbg_puts() is a stub to wire to the target's debug UART. */
 #ifdef STORNADO_DEBUG
 extern void dbg_puts(const char *s);
 #define DBG(s) dbg_puts(s)
@@ -46,14 +46,14 @@ enum err_code { E_OK = 0, E_BAD_CRC = 1, E_UNKNOWN_TYPE = 4,
 static uint8_t  diag_buffer[DIAG_BUFFER_BYTES];
 static uint32_t cnt_reads, cnt_writes, cnt_errors;
 
-/* --- plateforme : à implémenter pour la cible --- */
-extern int  usb_read(uint8_t *dst, uint32_t max);   /* octets reçus du PHY */
+/* --- platform: to implement for the target --- */
+extern int  usb_read(uint8_t *dst, uint32_t max);   /* bytes received from PHY */
 extern void usb_write(const uint8_t *src, uint32_t len);
-extern int32_t hw_read_temperature_c(void);         /* stub matériel */
+extern int32_t hw_read_temperature_c(void);         /* hardware stub */
 extern void hw_read_nvme_state(uint8_t *en, uint8_t *rdy, uint8_t *cfs);
 
-/* CRC-32 IEEE 802.3, little-endian, identique au codec Python/RTL
- * (calculé en ligne dans send_frame sur header+payload). */
+/* CRC-32 IEEE 802.3, little-endian, identical to the Python/RTL codecs
+ * (computed inline in send_frame over header+payload). */
 
 static void send_frame(uint16_t type, uint32_t seq,
                        const uint8_t *payload, uint32_t plen)
@@ -66,7 +66,7 @@ static void send_frame(uint16_t type, uint32_t seq,
     hdr[10]=seq & 0xFF; hdr[11]=(seq>>8)&0xFF; hdr[12]=(seq>>16)&0xFF; hdr[13]=(seq>>24)&0xFF;
     hdr[14]=plen & 0xFF; hdr[15]=(plen>>8)&0xFF; hdr[16]=(plen>>16)&0xFF; hdr[17]=(plen>>24)&0xFF;
 
-    /* CRC sur VER..PAYLOAD */
+    /* CRC over VER..PAYLOAD */
     uint32_t c = 0xFFFFFFFFu;
     for (uint32_t i = 4; i < HEADER_LEN; i++) {
         c ^= hdr[i]; for (int k=0;k<8;k++) c=(c&1u)?(c>>1)^0xEDB88320u:(c>>1);
@@ -121,12 +121,12 @@ void dispatch(uint16_t type, uint32_t seq, const uint8_t *payload, uint32_t plen
     }
     case MT_WRITE_TEST_PATTERN:
         if (plen > DIAG_BUFFER_BYTES) { send_error(seq, E_OUT_OF_RANGE); break; }
-        memcpy(diag_buffer, payload, plen);   /* borné au buffer embarqué */
+        memcpy(diag_buffer, payload, plen);   /* bounded to the embedded buffer */
         send_frame(MT_ACK, seq, 0, 0);
         break;
     case MT_READ_DIAG_BUFFER: {
         uint32_t n = 0;
-        if (plen >= 4) memcpy(&n, payload, 4);   /* évite une lecture non alignée */
+        if (plen >= 4) memcpy(&n, payload, 4);   /* avoid an unaligned read */
         if (n > DIAG_BUFFER_BYTES) { send_error(seq, E_OUT_OF_RANGE); break; }
         send_frame(MT_ACK, seq, diag_buffer, n);
         break;

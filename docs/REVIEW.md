@@ -1,44 +1,44 @@
-# Audit — bugs potentiels & constructions non supportées
+# Audit - potential bugs & unsupported constructs
 
-Revue statique (aucun simulateur RTL disponible dans l'environnement de build :
-la sim RTL se valide chez toi / en CI via Icarus + Verilator). Les tests Python
-passent (`7 passed`). Classé en **corrigé** et **à surveiller**.
+Static review (no RTL simulator available in the build environment: RTL sim is
+validated on your side / in CI with Icarus + Verilator). The Python tests pass
+(`7 passed`). Split into **fixed** and **to watch**.
 
-## Corrigé dans cette passe
+## Fixed in this pass
 
-| # | Problème | Fichiers | Correctif |
+| # | Problem | Files | Fix |
 |---|---|---|---|
-| C1 | **Ports tableaux non-packés** (`logic [15:0] x [N]` en ports) — mal/pas supportés par Icarus Verilog | `nvme_doorbells`, `nvme_queue_mgr`, `stornado_top`, `tb_init_sequence` | Passage en **bus packés** `[N*16-1:0]`, accès `[q*16 +: 16]` |
-| C2 | `do … while` dans les tâches de testbench — non garanti sous Icarus | `tb_sync_fifo` | Remplacé par `while` avec attente d'horloge |
-| C3 | `break` + `fork…join` pour le polling — fragile/non portable | `tb_nvme_regs` | Boucle `while` bornée par un compteur `guard` |
-| C4 | **Framer USB non fonctionnel** : `MSG_TYPE/SEQ/PLEN` jamais extraits (payload jamais consommé) et CRC assemblé à l'envers | `usb_packet_framer` | Réécrit : extraction octet-à-octet, état `U_DECIDE`, CRC reçu assemblé little-endian |
-| C5 | Déclaration de variable dans un `begin` non nommé de `case` — refusée par certains simulateurs | `usb_packet_framer` | Hoistée en `wire crc_rx_full` |
-| C6 | **argparse** : `--json`/`--debug` placés avant la sous-commande étaient écrasés par le défaut du sous-parseur | `host/cli/nvme_tool.py` | `default=argparse.SUPPRESS` + `getattr` |
-| C7 | Lecture mémoire **non alignée** `*(uint32_t*)payload` (UB sur archi stricte) | `firmware/stornado_diag.c` | `memcpy` dans un `uint32_t` aligné |
+| C1 | **Unpacked array ports** (`logic [15:0] x [N]` as ports) - poorly/not supported by Icarus Verilog | `nvme_doorbells`, `nvme_queue_mgr`, `stornado_top`, `tb_init_sequence` | Switched to **packed buses** `[N*16-1:0]`, access `[q*16 +: 16]` |
+| C2 | `do … while` in testbench tasks - not guaranteed under Icarus | `tb_sync_fifo` | Replaced with `while` plus a clock wait |
+| C3 | `break` + `fork…join` for polling - fragile/non-portable | `tb_nvme_regs` | `while` loop bounded by a `guard` counter |
+| C4 | **Non-functional USB framer**: `MSG_TYPE/SEQ/PLEN` never extracted (payload never consumed) and CRC assembled backwards | `usb_packet_framer` | Rewritten: byte-by-byte extraction, `U_DECIDE` state, little-endian received CRC |
+| C5 | Variable declaration in an unnamed `begin` of a `case` - rejected by some simulators | `usb_packet_framer` | Hoisted to `wire crc_rx_full` |
+| C6 | **argparse**: `--json`/`--debug` placed before the subcommand were overwritten by the subparser default | `host/cli/nvme_tool.py` | `default=argparse.SUPPRESS` + `getattr` |
+| C7 | **Unaligned** memory read `*(uint32_t*)payload` (UB on strict archs) | `firmware/stornado_diag.c` | `memcpy` into an aligned `uint32_t` |
 
-## À surveiller (nécessite sim ou matériel)
+## To watch (needs sim or hardware)
 
-| # | Point | Où | Nature |
+| # | Point | Where | Nature |
 |---|---|---|---|
-| S1 | `RDY_DELAY` symbolique (≠ vraie latence d'init NVMe) | `nvme_regs` | **[HYP]** — à caler sur le comportement réel |
-| S2 | Wrap CQ simplifié (toggle de phase sur passage à 0, taille CQ réelle ignorée) | `nvme_queue_mgr` | squelette — à compléter avec la taille CQ |
-| S3 | **Pas de vrai walk de PRP list** (PRP2 = pointeur de liste si >2 pages) ; avance DMA « par page » symbolique | `dma_engine` | `TODO` PARTIE G — le cœur du DMA reste à écrire |
-| S4 | `async_fifo` **sans testbench** | `rtl/common` | CDC à prouver en sim (ajouter un tb 2 horloges) |
-| S5 | Opérateur `inside` (classification opcodes) | `nvme_cmd_decoder` | supporté Verilator ; **confirmer sous Icarus -g2012** |
-| S6 | `pcie_wrapper` = **stub** (`link_up=0` câblé) : le top n'établit aucun lien en l'état | `rtl/pcie` | normal — dépend du Hard IP (`TODO-IP`) |
-| S7 | Backend `mem[65536]` ×128 b en sim (~1 MiB) | `storage_backend_ram` | lourd mais ok ; réduire `CAP_BYTES` pour sim rapide |
-| S8 | Mapping adresse octet→mot du backend | `storage_backend_ram` | vérifier en sim (test read/write LBA) |
-| S9 | Signaux non connectés au top (warnings lint attendus) | `stornado_top` | cosmétique ; brancher au fil de l'intégration |
-| S10 | `make lint` utilise `rtl/**/*.sv` (nécessite `globstar`) | `Makefile` | utiliser `scripts/lint.sh` (find) à la place |
+| S1 | Symbolic `RDY_DELAY` (!= real NVMe init latency) | `nvme_regs` | **[ASSUME]** - tune to real behavior |
+| S2 | Simplified CQ wrap (phase toggle on wrap to 0, real CQ size ignored) | `nvme_queue_mgr` | skeleton - complete with the CQ size |
+| S3 | **No real PRP list walk** (PRP2 = list pointer if >2 pages); symbolic per-page DMA advance | `dma_engine` | `TODO` PART G - the DMA core is still to write |
+| S4 | `async_fifo` **has no testbench** | `rtl/common` | CDC to prove in sim (add a 2-clock tb) |
+| S5 | `inside` operator (opcode classification) | `nvme_cmd_decoder` | supported by Verilator; **confirm under Icarus -g2012** |
+| S6 | `pcie_wrapper` = **stub** (`link_up=0` tied): the top establishes no link as-is | `rtl/pcie` | normal - depends on the Hard IP (`TODO-IP`) |
+| S7 | Backend `mem[65536]` x128 b in sim (~1 MiB) | `storage_backend_ram` | heavy but ok; reduce `CAP_BYTES` for fast sim |
+| S8 | Backend byte->word address mapping | `storage_backend_ram` | verify in sim (LBA read/write test) |
+| S9 | Signals left unconnected at the top (expected lint warnings) | `stornado_top` | cosmetic; wire up during integration |
+| S10 | `make lint` uses `rtl/**/*.sv` (needs `globstar`) | `Makefile` | use `scripts/lint.sh` (find) instead |
 
-## Comment activer le debug
+## How to enable debug
 
-- **RTL** : `make sim-debug` (définit `STORNADO_DEBUG`) → traces FSM init NVMe,
-  doorbells, DMA, trames USB.
-- **Hôte** : `python3 host/cli/nvme_tool.py --debug <cmd>` → trace TX/RX des trames.
-- **Firmware** : compiler avec `-DSTORNADO_DEBUG` et fournir `dbg_puts()`.
+- **RTL**: `make sim-debug` (defines `STORNADO_DEBUG`) -> traces for the NVMe init
+  FSM, doorbells, DMA, USB frames.
+- **Host**: `python3 host/cli/nvme_tool.py --debug <cmd>` -> traces frame TX/RX.
+- **Firmware**: compile with `-DSTORNADO_DEBUG` and provide `dbg_puts()`.
 
-## Prochaines priorités de code
-1. Implémenter le **walk PRP** réel (S3) — bloc le plus structurant.
-2. Ajouter un **testbench async_fifo** (S4) et un tb backend read/write (S8).
-3. Confirmer `inside` sous Icarus, sinon remplacer par comparaisons explicites (S5).
+## Next code priorities
+1. Implement the real **PRP walk** (S3) - the most structural block.
+2. Add an **async_fifo testbench** (S4) and a backend read/write tb (S8).
+3. Confirm `inside` under Icarus, otherwise replace with explicit comparisons (S5).

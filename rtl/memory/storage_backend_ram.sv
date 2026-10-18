@@ -1,12 +1,12 @@
-// storage_backend_ram.sv — Backend de namespace sur BRAM (VOLATILE).
-// Variante A/B du projet : namespace réel mais non persistant (perdu au reset).
-// Pour la persistance (variante B+), remplacer par un wrapper DDR/QSPI/NAND en
-// gardant la même interface. La persistance DOIT être déclarée explicitement
-// dans Identify Namespace (cf. docs/register-map.md).
+// storage_backend_ram.sv - Namespace backend on BRAM (VOLATILE).
+// Project variant A/B: real namespace but non-persistent (lost on reset).
+// For persistence (variant B+), replace with a DDR/QSPI/NAND wrapper keeping the
+// same interface. Persistence MUST be declared explicitly in Identify Namespace
+// (see docs/register-map.md).
 module storage_backend_ram #(
   parameter int ADDR_W   = 64,
   parameter int DATA_W   = 128,
-  parameter int CAP_BYTES= 1024*1024   // 1 MiB de démo
+  parameter int CAP_BYTES= 1024*1024   // 1 MiB demo
 )(
   input  logic              clk,
   input  logic              rst_n,
@@ -17,7 +17,7 @@ module storage_backend_ram #(
   input  logic [DATA_W-1:0] wdata,
   output logic [DATA_W-1:0] rdata,
   output logic              rvalid,
-  output logic              oob_error   // adresse hors capacité
+  output logic              oob_error   // address beyond capacity
 );
   localparam int WORD_BYTES = DATA_W/8;
   localparam int WORDS      = CAP_BYTES/WORD_BYTES;

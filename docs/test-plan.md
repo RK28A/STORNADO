@@ -1,53 +1,53 @@
-# Plan de test par jalons
+# Test plan by milestones
 
-Chaque test : **ID · prérequis · matériel · procédure · observable · attendu ·
-logs · critère d'acceptation · diagnostic si échec.** Statut actuel : seuls les
-tests de sim logique et les tests Python sont exécutables sans matériel.
+Each test: **ID · prerequisites · hardware · procedure · observable · expected ·
+logs · acceptance criterion · diagnostic on failure.** Current status: only logic
+sim tests and the Python tests are runnable without hardware.
 
-## Jalon 1 — Sim unitaire (exécutable maintenant)
-| ID | Objet | Fichier | Attendu |
+## Milestone 1 - Unit sim (runnable now)
+| ID | Target | File | Expected |
 |---|---|---|---|
-| T1.1 | FIFO sync | `sim/unit/tb_sync_fifo.sv` | `PASS` |
-| T1.2 | Registres + CC.EN→CSTS.RDY | `sim/unit/tb_nvme_regs.sv` | `PASS` |
+| T1.1 | sync FIFO | `sim/unit/tb_sync_fifo.sv` | `PASS` |
+| T1.2 | Registers + CC.EN->CSTS.RDY | `sim/unit/tb_nvme_regs.sv` | `PASS` |
 | T1.3 | Init + doorbell | `sim/integration/tb_init_sequence.sv` | `PASS` |
-| T1.4 | Protocole USB (codec/CRC) | `host/tests/test_protocol.py` | `7 passed` ✅ (exécuté) |
+| T1.4 | USB protocol (codec/CRC) | `host/tests/test_protocol.py` | `7 passed` ✅ (run) |
 
-Procédure sim : `make sim` (iverilog) ou `make sim-verilator`.
-Procédure Python : `make test-host` (exécuté : **7 passed**).
+Sim procedure: `make sim` (iverilog) or `make sim-verilator`.
+Python procedure: `make test-host` (run: **7 passed**).
 
-## Jalon 2 — Synthèse & timing
-Vivado : synthèse Artix-7, timing closure, programmation carte NiteFury (JTAG).
-Observable : rapport timing WNS ≥ 0 ; bitstream chargé. Diagnostic : contraintes XDC.
+## Milestone 2 - Synthesis & timing
+Vivado: Artix-7 synthesis, timing closure, NiteFury board programming (JTAG).
+Observable: timing report WNS >= 0; bitstream loaded. Diagnostic: XDC constraints.
 
-## Jalon 3 — PCIe link training & Config Space
-Observable : `link_up`, largeur/vitesse ; device dans Gestionnaire de périph./`lspci`.
-Critère : BAR0 mappé, classe 0x010802 lue.
+## Milestone 3 - PCIe link training & Config Space
+Observable: `link_up`, width/speed; device in Device Manager/`lspci`.
+Criterion: BAR0 mapped, class 0x010802 read.
 
-## Jalon 4 — stornvme + Identify
-Critère : pilote attaché ; Identify Controller/Namespace cohérents avec CAP.
+## Milestone 4 - stornvme + Identify
+Criterion: driver attached; Identify Controller/Namespace consistent with CAP.
 
-## Jalon 5 — Disque Windows + montage namespace
-Critère : disque visible dans Gestion des disques ; namespace partitionnable.
+## Milestone 5 - Windows disk + namespace mount
+Criterion: disk visible in Disk Management; namespace partitionable.
 
-## Jalon 6 — Fichier aller-retour
-Procédure : écrire un fichier, `certutil -hashfile`, relire, comparer.
-Critère : **hash identique** (intégrité bout-en-bout).
+## Milestone 6 - File round-trip
+Procedure: write a file, `certutil -hashfile`, read back, compare.
+Criterion: **identical hash** (end-to-end integrity).
 
-## Jalon 7 — USB + logiciel secondaire
-Procédure : `nvme-tool self-test`, `info`, `status` sur lien réel.
-Critère : ACK sur toutes les commandes, CRC OK, logs horodatés.
+## Milestone 7 - USB + secondary software
+Procedure: `nvme-tool self-test`, `info`, `status` over the real link.
+Criterion: ACK on all commands, CRC OK, timestamped logs.
 
-## Jalon 8 — DMA sur buffers de test autorisés
-Procédure : transferts vers buffers **réservés par le banc d'essai** ; signatures/CRC ;
-essais 4 Go+ ; frontières de pages ; **inclure un cas de refus IOMMU** (doit être
-rejeté proprement en complétion d'erreur). Aucun accès hors buffers autorisés.
+## Milestone 8 - DMA to authorized test buffers
+Procedure: transfers to buffers **reserved by the test bench**; signatures/CRC;
+4 GB+ runs; page boundaries; **include an IOMMU reject case** (must be cleanly
+rejected as an error completion). No access outside the authorized buffers.
 
-## Jalon 9 — Endurance & récupération
-Transferts prolongés ; injection d'erreurs ; reset contrôleur/PCIe ; coupure alim.
-Critère : pas de corruption ; récupération propre (CSTS.CFS géré).
+## Milestone 9 - Endurance & recovery
+Prolonged transfers; error injection; controller/PCIe reset; power loss.
+Criterion: no corruption; clean recovery (CSTS.CFS handled).
 
-## Jalon 10 — PCB M.2 2280 (variante C)
-Vérif électrique (rails, séquencement), thermique (ΔT), régression des jalons 1–9.
+## Milestone 10 - M.2 2280 PCB (variant C)
+Electrical check (rails, sequencing), thermal (ΔT), regression of milestones 1-9.
 
-> Règle PARTIE J : l'absence de crash ne prouve **ni** la conformité PCIe/NVMe
-> complète **ni** la sécurité. Ces affirmations restent distinctes et non acquises.
+> PART J rule: the absence of a crash proves **neither** full PCIe/NVMe
+> compliance **nor** security. These claims remain distinct and not acquired.

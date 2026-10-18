@@ -1,11 +1,11 @@
-// usb_packet_framer.sv — Framing du protocole diagnostic STORNADO (côté FPGA).
-// Décapsule le cadre binaire versionné décrit dans docs/usb-protocol.md :
+// usb_packet_framer.sv - STORNADO diagnostic protocol framing (FPGA side).
+// Decapsulates the versioned binary frame described in docs/usb-protocol.md:
 //   MAGIC(4)|VER(1)|HDR_LEN(1)|MSG_TYPE(2)|FLAGS(2)|SEQ(4)|PLEN(4)|PAYLOAD|CRC32(4)
-// Tout est little-endian. Octet-stream valid/ready fourni par le PHY USB
-// (FT601/ULPI/soft-core) ; indépendant du PHY.
+// Everything is little-endian. Talks to a valid/ready byte stream provided by the
+// USB PHY (FT601/ULPI/soft-core); PHY-independent.
 //
-// PORTÉE : diagnostic uniquement, borné aux buffers embarqués / banc de test
-// (cf. PARTIE H). Aucun accès à la mémoire hôte.
+// SCOPE: diagnostics only, bounded to embedded / test-bench buffers (see PART H).
+// No access to host memory.
 module usb_packet_framer #(
   parameter logic [31:0] MAGIC   = 32'h5354_524E, // "STRN"
   parameter int          MAX_PLEN = 4096
@@ -30,15 +30,11 @@ module usb_packet_framer #(
   u_e st;
 
   logic [31:0] magic_sr;
-  logic [31:0] crc_acc;   // CRC calculé sur VER..PAYLOAD
-  logic [31:0] crc_rx;    // CRC reçu (assemblé LE)
+  logic [31:0] crc_acc;   // CRC computed over VER..PAYLOAD
+  logic [31:0] crc_rx;    // received CRC (assembled LE)
   logic [7:0]  hcnt;
   logic [31:0] pcnt;
   logic [1:0]  ccnt;
-
-  // CRC reçu complet au moment où arrive le 4e octet (évite une variable locale
-  // de bloc, mal supportée par certains simulateurs).
-  wire [31:0] crc_rx_full = (crc_rx >> 8) | ({24'h0, rx_data} << 24);
 
   function automatic logic [31:0] crc32_byte(input logic [31:0] c, input logic [7:0] d);
     logic [31:0] x; int i;
@@ -49,6 +45,10 @@ module usb_packet_framer #(
 
   assign rx_ready = (st != U_EMIT) && (st != U_DECIDE);
 
+  // Full received CRC at the moment the 4th byte arrives (avoids a block-local
+  // variable, poorly supported by some simulators).
+  wire [31:0] crc_rx_full = (crc_rx >> 8) | ({24'h0, rx_data} << 24);
+
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       st <= U_MAGIC; magic_sr <= '0; crc_acc <= 32'hFFFF_FFFF; crc_rx <= '0;
@@ -57,7 +57,7 @@ module usb_packet_framer #(
       frame_plen <= '0; frame_crc_ok <= 1'b0;
     end else begin
       case (st)
-        // État interne (aucun octet consommé) : plen est stable, on branche.
+        // Internal state (no byte consumed): plen is stable, we branch.
         U_DECIDE: begin
           pcnt <= '0;
           st   <= (frame_plen == 0) ? U_CRC : U_PAYLOAD;
@@ -88,7 +88,7 @@ module usb_packet_framer #(
                 8'd11: frame_plen[15:8]  <= rx_data;
                 8'd12: frame_plen[23:16] <= rx_data;
                 8'd13: frame_plen[31:24] <= rx_data;
-                default: ; // VER, HDR_LEN, FLAGS : non stockés ici
+                default: ; // VER, HDR_LEN, FLAGS: not stored here
               endcase
               if (hcnt == 8'd13) st <= U_DECIDE;
               hcnt <= hcnt + 8'd1;
@@ -99,7 +99,7 @@ module usb_packet_framer #(
               pcnt <= pcnt + 32'd1;
             end
             U_CRC: begin
-              // assemblage little-endian : 1er octet = LSB
+              // little-endian assembly: first byte = LSB
               crc_rx <= (crc_rx >> 8) | ({24'h0, rx_data} << 24);
               if (ccnt == 2'd3) begin
                 frame_crc_ok <= ((crc_acc ^ 32'hFFFF_FFFF) == crc_rx_full);

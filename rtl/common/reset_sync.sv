@@ -1,11 +1,11 @@
-// reset_sync.sv — Dé-assertion synchrone d'un reset asynchrone (actif bas).
-// Assertion immédiate, relâchement resynchronisé sur clk (double bascule).
+// reset_sync.sv - Synchronous de-assertion of an asynchronous (active-low) reset.
+// Immediate assertion, release resynchronized onto clk (double flop).
 module reset_sync #(
   parameter int STAGES = 2
 )(
   input  logic clk,
-  input  logic arst_n,   // reset asynchrone actif bas
-  output logic srst_n    // reset synchrone actif bas
+  input  logic arst_n,   // asynchronous active-low reset
+  output logic srst_n    // synchronous active-low reset
 );
   (* ASYNC_REG = "TRUE" *) logic [STAGES-1:0] sync;
   always_ff @(posedge clk or negedge arst_n) begin

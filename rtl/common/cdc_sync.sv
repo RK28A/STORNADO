@@ -1,6 +1,6 @@
-// cdc_sync.sv — Synchroniseur multi-bascule pour signal 1 bit (CDC).
-// À n'utiliser que pour des signaux de contrôle lents. Pour un bus multi-bits,
-// passer par async_fifo ou un handshake gray-code (voir async_fifo.sv).
+// cdc_sync.sv - Multi-flop synchronizer for a 1-bit signal (CDC).
+// Use only for slow control signals. For a multi-bit bus, go through async_fifo
+// or a gray-code handshake (see async_fifo.sv).
 module cdc_sync #(
   parameter int STAGES = 2,
   parameter logic RESET_VAL = 1'b0

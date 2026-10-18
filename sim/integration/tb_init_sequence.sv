@@ -1,7 +1,7 @@
-// tb_init_sequence.sv — Intégration légère : registres + doorbells câblés.
-// Sonne la doorbell SQ admin après init et vérifie le pointeur sq_tail.
-// Ne couvre PAS le fetch DMA réel (dépend de l'IP PCIe) : cf. docs/test-plan.md.
-// Bus de pointeurs packés (sq_tail_flat/cq_head_flat).
+// tb_init_sequence.sv - Light integration: registers + doorbells wired together.
+// Rings the admin SQ doorbell after init and checks the sq_tail pointer.
+// Does NOT cover the real DMA fetch (depends on the PCIe IP): see docs/test-plan.md.
+// Packed pointer buses (sq_tail_flat/cq_head_flat).
 `timescale 1ns/1ps
 import nvme_pkg::*;
 
@@ -50,13 +50,13 @@ module tb_init_sequence;
     wr(OFF_AQA, 32'h001F_001F);
     wr(OFF_CC, 32'h0046_0001);
     repeat(20) @(posedge clk);
-    if (!ctrl_ready) begin $display("FAIL ctrl pas pret"); errors++; end
+    if (!ctrl_ready) begin $display("FAIL ctrl not ready"); errors++; end
 
-    // sonne SQ0 tail = 1
+    // ring SQ0 tail = 1
     wr(OFF_DBRANGE, 32'h0000_0001);
     @(posedge clk);
     if (sq_tail_flat[15:0] !== 16'd1) begin $display("FAIL sq_tail: %0d", sq_tail_flat[15:0]); errors++; end
-    if (!sq_rung) begin $display("NOTE: sq_rung impulsion deja retombee (ok si 1 cycle)"); end
+    if (!sq_rung) begin $display("NOTE: sq_rung pulse already dropped (ok if 1 cycle)"); end
 
     if (errors==0) $display("TB_INIT_SEQUENCE: PASS");
     else            $display("TB_INIT_SEQUENCE: FAIL (%0d)", errors);

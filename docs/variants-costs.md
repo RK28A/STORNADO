@@ -1,46 +1,46 @@
-# Variantes, coûts et compromis
+# Variants, costs and trade-offs
 
-> Aucun prix inventé. Les coûts non sourcés sont marqués *à sourcer* ; le temps
-> est une estimation d'effort solo, pas un engagement.
+> No invented prices. Unsourced costs are marked *to source*; time is an effort
+> estimate for a single person, not a commitment.
 
-## Variante A — Banc économique (validation PCIe/NVMe)
-Carte FPGA de dev + lien PCIe, backend BRAM, pas d'USB.
-- **But** : prouver link training, Config Space 0x010802, init registres, Identify.
-- Composants : carte Artix-7 (NiteFury M.2 ou carte dev + slot PCIe), JTAG.
-- Outils : Vivado WebPACK (gratuit), ce repo.
-- PCB/assemblage : aucun.
-- Coût : carte ~329 USD *(NiteFury historique, épuisé — équivalent à sourcer)*.
-- Conso/thermique : faibles (lien + logique).
-- Temps : élevé sur la logique NVMe Admin.
-- Risques : R1, R2.
+## Variant A - Economy bench (PCIe/NVMe validation)
+FPGA dev board + PCIe link, BRAM backend, no USB.
+- **Goal**: prove link training, Config Space 0x010802, register init, Identify.
+- Components: Artix-7 board (NiteFury M.2 or dev board + PCIe slot), JTAG.
+- Tools: Vivado WebPACK (free), this repo.
+- PCB/assembly: none.
+- Cost: board ~329 USD *(NiteFury historical, sold out - equivalent to source)*.
+- Power/thermal: low (link + logic).
+- Time: high on the NVMe Admin logic.
+- Risks: R1, R2.
 
-## Variante B — Prototype fonctionnel (namespace + USB)
-A + namespace réel (BRAM→DDR3) + diagnostics USB (PC #2).
-- **But** : disque montable sous Windows, aller-retour fichier, CLI diagnostic.
-- Composants : + PHY USB (FT2232H USB2 **ou** FT601 USB3) + câblage.
-- Outils : + toolchain C/Python (ce repo).
-- PCB : éventuel petit adaptateur USB si non intégré.
-- Coût : A + PHY USB *à sourcer*.
-- Temps : + chemin DMA complet + bring-up Windows.
-- Risques : R3, R4, R7.
+## Variant B - Functional prototype (namespace + USB)
+A + real namespace (BRAM->DDR3) + USB diagnostics (PC #2).
+- **Goal**: mountable disk under Windows, file round-trip, diagnostic CLI.
+- Components: + USB PHY (FT2232H USB2 **or** FT601 USB3) + wiring.
+- Tools: + C/Python toolchain (this repo).
+- PCB: possibly a small USB adapter if not integrated.
+- Cost: A + USB PHY *to source*.
+- Time: + full DMA path + Windows bring-up.
+- Risks: R3, R4, R7.
 
-## Variante C — Carte M.2 2280 intégrée (miniaturisation)
-PCB custom : FPGA nu + DDR3 + PMIC + USB + connector edge M.2.
-- **But** : format final, autonome dans un slot M.2.
-- Composants : BOM complète (voir phase1 §1.3, étendue).
-- Outils : + CAO PCB (KiCad), fab PCB HDI, assemblage CMS.
-- Coût : FPGA + mémoires + PMIC + PCB HDI + assemblage — **à chiffrer après A/B**.
-- Temps : le plus élevé (SI, alim, thermique, bring-up matériel).
-- Risques : R5, R6, R8, R10 + tous les précédents.
+## Variant C - Integrated M.2 2280 board (miniaturization)
+Custom PCB: bare FPGA + DDR3 + PMIC + USB + M.2 edge connector.
+- **Goal**: final form factor, self-contained in an M.2 slot.
+- Components: full BOM (see phase1 §1.3, extended).
+- Tools: + PCB CAD (KiCad), HDI PCB fab, SMT assembly.
+- Cost: FPGA + memories + PMIC + HDI PCB + assembly - **to quote after A/B**.
+- Time: highest (SI, power, thermal, hardware bring-up).
+- Risks: R5, R6, R8, R10 + all previous ones.
 
-## Compromis clés
-| Axe | Option prudente | Option ambitieuse | Choix STORNADO |
+## Key trade-offs
+| Axis | Cautious option | Ambitious option | STORNADO choice |
 |---|---|---|---|
-| Largeur PCIe | x1 (bring-up) | x4 (perf) | x4 cible, x1/x2 en secours |
-| USB | 2.0 HS | 3.x | 2.0 HS d'abord |
-| Backend | BRAM (volatile) | DDR3/NAND (persistant) | BRAM → DDR3 |
-| PCIe IP | Hard IP (incluse) | soft (ECP5) | **Hard IP** (règle B.1) |
-| Support | carte dev du commerce | PCB M.2 custom | carte dev → PCB en dernier |
+| PCIe width | x1 (bring-up) | x4 (perf) | x4 target, x1/x2 fallback |
+| USB | 2.0 HS | 3.x | 2.0 HS first |
+| Backend | BRAM (volatile) | DDR3/NAND (persistent) | BRAM -> DDR3 |
+| PCIe IP | Hard IP (included) | soft (ECP5) | **Hard IP** (rule B.1) |
+| Support | off-the-shelf dev board | custom M.2 PCB | dev board -> PCB last |
 
-Justification : minimiser le risque de **fabrication inutile** — on ne grave un PCB
-(variante C) qu'après un namespace monté et un aller-retour fichier validés (A/B).
+Rationale: minimize the risk of **useless fabrication** - a PCB (variant C) is
+only etched once a mounted namespace and a validated file round-trip (A/B) exist.

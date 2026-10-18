@@ -1,21 +1,22 @@
-# Contribuer à STORNADO
+# Contributing to STORNADO
 
-## Règles de qualité (reprises du cahier des charges)
-1. Distinguer **spécification / hypothèse / simulation / mesure / objectif**.
-2. Références réelles + versions exactes des specs (PCIe Base, NVMe 2.0c).
-3. **Ne pas annoncer de compatibilité sans test.**
-4. Ne jamais inventer prix, puissance ou débit.
-5. Moteur DMA autorisé ≠ accès arbitraire RAM.
-6. Interface PCIe ≠ contrôleur NVMe complet.
-7. Tests reproductibles, modularité (logique portable vs wrappers IP).
-8. Préciser outils/commandes/fichiers.
-9. Une alternative par décision majeure.
-10. Ne pas ignorer les contraintes M.2 (alim/place).
-11. Prévoir récupération carte et erreurs de flash.
-12. Vocabulaire exact — **aucune** affirmation de furtivité/indétectabilité.
+## Quality rules (from the project brief)
+1. Distinguish **spec / assumption / simulation / measurement / goal**.
+2. Real references + exact spec versions (PCIe Base, NVMe 2.0c).
+3. **Do not claim compatibility without a test.**
+4. Never invent prices, power, or throughput.
+5. Authorized DMA engine != arbitrary RAM access.
+6. PCIe interface != complete NVMe controller.
+7. Reproducible tests, modularity (portable logic vs IP wrappers).
+8. State the tools/commands/files.
+9. One alternative per major decision.
+10. Do not ignore the M.2 constraints (power/space).
+11. Plan for board recovery and flash errors.
+12. Exact vocabulary - **no** stealth/undetectability claims.
 
 ## Workflow
-- Branche par fonctionnalité, PR avec description claire.
-- `make test-host` et `make sim` doivent passer (CI les exécute).
-- Tout module RTL neuf : testbench + balise `TODO-IP`/`TODO-SPEC` si dépendant du matériel.
-- Marquer explicitement ce qui est prouvé en sim vs ce qui dépend du matériel réel.
+- Feature branch, PR with a clear description.
+- `make test-host` and `make sim` must pass (CI runs them).
+- Every new RTL module: a testbench + a `TODO-IP`/`TODO-SPEC` marker if it depends
+  on hardware.
+- Explicitly mark what is proven in sim vs what depends on real hardware.

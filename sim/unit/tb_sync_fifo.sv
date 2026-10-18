@@ -1,5 +1,5 @@
-// tb_sync_fifo.sv — Testbench unitaire sync_fifo (Icarus/Verilator).
-// N'utilise que des constructions portables (pas de do..while).
+// tb_sync_fifo.sv - Unit testbench for sync_fifo (Icarus/Verilator).
+// Uses portable constructs only (no do..while).
 `timescale 1ns/1ps
 module tb_sync_fifo;
   localparam int W = 8, D = 4;
@@ -36,11 +36,11 @@ module tb_sync_fifo;
 
     for (int i = 0; i < D; i++) push(i + 8'hA0);
     @(posedge clk);
-    if (wr_ready) begin $display("FAIL: FIFO devrait etre plein"); errors++; end
+    if (wr_ready) begin $display("FAIL: FIFO should be full"); errors++; end
 
     for (int i = 0; i < D; i++) begin
       pop(got);
-      if (got !== (i + 8'hA0)) begin $display("FAIL ordre: %0h", got); errors++; end
+      if (got !== (i + 8'hA0)) begin $display("FAIL order: %0h", got); errors++; end
     end
 
     if (errors == 0) $display("TB_SYNC_FIFO: PASS");

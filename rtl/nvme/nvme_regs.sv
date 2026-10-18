@@ -1,52 +1,52 @@
-// nvme_regs.sv — Bloc de registres contrôleur NVMe (BAR0) + FSM d'init.
-// Implémente CAP, VS, CC, CSTS, AQA, ASQ, ACQ, INTMS/INTMC et la logique
-// CC.EN -> CSTS.RDY (NVMe 2.0, section 3.1.5 "Controller Initialization").
-// Bus d'accès style MMIO 32 bits, aligné dword. Les doorbells sont gérés
-// à part (nvme_doorbells.sv) car indexés par queue.
+// nvme_regs.sv - NVMe controller register block (BAR0) + init FSM.
+// Implements CAP, VS, CC, CSTS, AQA, ASQ, ACQ, INTMS/INTMC and the
+// CC.EN -> CSTS.RDY logic (NVMe 2.0, section 3.1.5 "Controller Initialization").
+// 32-bit MMIO-style access bus, dword aligned. Doorbells are handled separately
+// (nvme_doorbells.sv) because they are indexed per queue.
 //
-// Portabilité : module 100% synthétisable, sans primitive vendeur.
+// Portability: fully synthesizable module, no vendor primitive.
 import nvme_pkg::*;
 
 module nvme_regs (
   input  logic              clk,
   input  logic              rst_n,
 
-  // ---- Interface MMIO (depuis le pont PCIe/TLP) ----
-  input  logic              reg_sel,     // accès dans la plage registres (hors doorbells)
+  // ---- MMIO interface (from the PCIe/TLP bridge) ----
+  input  logic              reg_sel,     // access within the register range (excluding doorbells)
   input  logic              reg_we,      // 1 = write, 0 = read
-  input  logic [REG_AW-1:0] reg_addr,    // offset dans BAR0
+  input  logic [REG_AW-1:0] reg_addr,    // offset within BAR0
   input  logic [REG_DW-1:0] reg_wdata,
-  input  logic [3:0]        reg_wstrb,   // par octet
+  input  logic [3:0]        reg_wstrb,   // per byte
   output logic [REG_DW-1:0] reg_rdata,
   output logic              reg_ack,
 
-  // ---- Valeurs exposées au reste du cœur ----
-  output logic [63:0]       asq_base,    // adresse DMA Admin SQ
-  output logic [63:0]       acq_base,    // adresse DMA Admin CQ
-  output logic [11:0]       asq_size,    // AQA.ASQS + 1 (entrées)
-  output logic [11:0]       acq_size,    // AQA.ACQS + 1 (entrées)
-  output logic              ctrl_enabled,// CC.EN propre (après RDY)
+  // ---- Values exposed to the rest of the core ----
+  output logic [63:0]       asq_base,    // Admin SQ DMA address
+  output logic [63:0]       acq_base,    // Admin CQ DMA address
+  output logic [11:0]       asq_size,    // AQA.ASQS + 1 (entries)
+  output logic [11:0]       acq_size,    // AQA.ACQS + 1 (entries)
+  output logic              ctrl_enabled,// clean CC.EN (after RDY)
   output logic              ctrl_ready,  // CSTS.RDY
 
-  // ---- Événements d'erreur rapportés par le cœur ----
-  input  logic              fatal_error  // force CSTS.CFS=1
+  // ---- Error events reported by the core ----
+  input  logic              fatal_error  // forces CSTS.CFS=1
 );
 
   // ------------------------------------------------------------------
-  // CAP (Controller Capabilities) — lecture seule.
-  //   MQES  [15:0]  = max queue entries - 1            -> 1023 (1024 entrées)
+  // CAP (Controller Capabilities) - read only.
+  //   MQES  [15:0]  = max queue entries - 1            -> 1023 (1024 entries)
   //   CQR   [16]    = contiguous queues required       -> 1
-  //   TO    [31:24] = timeout en unités de 500 ms      -> 20 (10 s)
-  //   DSTRD [35:32] = doorbell stride (2^(2+DSTRD))     -> 0 (4 octets)
+  //   TO    [31:24] = timeout in units of 500 ms       -> 20 (10 s)
+  //   DSTRD [35:32] = doorbell stride (2^(2+DSTRD))     -> 0 (4 bytes)
   //   CSS   [44:37] = command sets supported           -> NVM (bit37=1)
   //   MPSMIN[51:48] = page size min (2^(12+val))       -> 0 (4 KiB)
   //   MPSMAX[55:52] = page size max                    -> 0 (4 KiB)
-  // TODO-SPEC : revérifier bit à bit avant gel du design.
+  // TODO-SPEC: re-check bit by bit before freezing the design.
   // ------------------------------------------------------------------
   localparam logic [63:0] CAP_VALUE = 64'h0000_0020_0014_03FF;
 
   // ------------------------------------------------------------------
-  // Registres R/W
+  // R/W registers
   // ------------------------------------------------------------------
   logic [31:0] cc_q;
   logic [31:0] csts_q;
@@ -66,14 +66,14 @@ module nvme_regs (
   assign ctrl_enabled = cc_en & csts_q[0];
 
   // ------------------------------------------------------------------
-  // FSM d'initialisation contrôleur
-  //   RDY suit EN avec une latence (ici symbolique). Un passage EN 1->0
-  //   déclenche un reset contrôleur : RDY retombe, queues invalidées.
+  // Controller initialization FSM
+  //   RDY follows EN after some latency (symbolic here). An EN 1->0 edge
+  //   triggers a controller reset: RDY drops, queues are invalidated.
   // ------------------------------------------------------------------
   typedef enum logic [1:0] {S_DISABLED, S_ENABLING, S_READY, S_RESETTING} init_e;
   init_e state, state_n;
 
-  localparam int unsigned RDY_DELAY = 8; // cycles symboliques avant RDY
+  localparam int unsigned RDY_DELAY = 8; // symbolic cycles before RDY
   logic [7:0] dly;
 
   always_comb begin
@@ -97,18 +97,18 @@ module nvme_regs (
                                      $time, state, state_n, cc_en);
 `endif
       state <= state_n;
-      csts_q[1] <= fatal_error ? 1'b1 : csts_q[1]; // CFS collant jusqu'au reset
+      csts_q[1] <= fatal_error ? 1'b1 : csts_q[1]; // CFS sticky until reset
       case (state)
         S_ENABLING : dly <= dly + 1'b1;
         default    : dly <= '0;
       endcase
       csts_q[0] <= (state == S_READY); // CSTS.RDY
-      if (state == S_RESETTING) csts_q[1] <= 1'b0; // CFS effacé au reset
+      if (state == S_RESETTING) csts_q[1] <= 1'b0; // CFS cleared on reset
     end
   end
 
   // ------------------------------------------------------------------
-  // Accès registres (1 cycle, ack combinatoire)
+  // Register access (1 cycle, combinational ack)
   // ------------------------------------------------------------------
   function automatic logic [31:0] apply_strb
       (input logic [31:0] cur, input logic [31:0] nxt, input logic [3:0] s);
@@ -130,7 +130,7 @@ module nvme_regs (
         OFF_ASQ1  : asq_q[63:32] <= apply_strb(asq_q[63:32], reg_wdata, reg_wstrb);
         OFF_ACQ0  : acq_q[31:0]  <= apply_strb(acq_q[31:0],  reg_wdata, reg_wstrb);
         OFF_ACQ1  : acq_q[63:32] <= apply_strb(acq_q[63:32], reg_wdata, reg_wstrb);
-        default   : ; // écriture sur RO ou réservé : ignorée (cf. règle NVMe)
+        default   : ; // write to RO or reserved: ignored (per NVMe rule)
       endcase
     end
   end
@@ -154,6 +154,6 @@ module nvme_regs (
     endcase
   end
 
-  assign reg_ack = reg_sel; // accès 1 cycle
+  assign reg_ack = reg_sel; // 1-cycle access
 
 endmodule : nvme_regs

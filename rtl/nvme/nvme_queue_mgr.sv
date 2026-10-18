@@ -1,9 +1,9 @@
-// nvme_queue_mgr.sv — Suivi des pointeurs SQ/CQ et génération des complétions.
-// Maintient head/tail par queue, calcule "SQ non vide", gère le phase tag de la
-// CQ et prépare les CQE. La lecture des SQE et l'écriture des CQE en mémoire hôte
-// passent par le moteur DMA (ce module ne touche pas la RAM).
+// nvme_queue_mgr.sv - SQ/CQ pointer tracking and completion generation.
+// Keeps head/tail per queue, computes "SQ non-empty", handles the CQ phase tag
+// and prepares CQEs. Actually reading SQEs and writing CQEs to host memory goes
+// through the DMA engine (this module does not touch host RAM).
 //
-// Pointeurs en BUS PACKÉ (portabilité Icarus). Accès queue q : flat[q*16 +: 16].
+// Pointers as a PACKED BUS (Icarus portability). Access queue q: flat[q*16 +: 16].
 import nvme_pkg::*;
 
 module nvme_queue_mgr #(
@@ -12,18 +12,18 @@ module nvme_queue_mgr #(
   input  logic              clk,
   input  logic              rst_n,
 
-  // pointeurs issus des doorbells
+  // pointers coming from the doorbells
   input  logic [NUM_QUEUES*16-1:0] sq_tail_flat,
   input  logic [NUM_QUEUES*16-1:0] cq_head_flat,
   input  logic [11:0]              sq_size,
 
-  // tête SQ maintenue localement (avance quand une SQE est consommée)
+  // SQ head maintained locally (advances when an SQE is consumed)
   output logic [NUM_QUEUES*16-1:0] sq_head_flat,
   output logic [NUM_QUEUES-1:0]    sq_nonempty,
   input  logic                     sq_pop,
   input  logic [$clog2(NUM_QUEUES)-1:0] sq_pop_qid,
 
-  // complétions à écrire
+  // completions to write
   input  logic                     cpl_push,
   input  logic [$clog2(NUM_QUEUES)-1:0] cpl_qid,
   input  logic [15:0]              cpl_cid,
@@ -33,7 +33,7 @@ module nvme_queue_mgr #(
   output cqe_t                     cpl_entry,
   output logic                     cpl_wr_req
 );
-  // "non vide" par queue (comparaison tail != head sur chaque tranche)
+  // "non-empty" per queue (tail != head on each slice)
   genvar g;
   generate
     for (g = 0; g < NUM_QUEUES; g++) begin : gq
@@ -49,7 +49,7 @@ module nvme_queue_mgr #(
     if (!rst_n) begin
       sq_head_flat <= '0;
       cq_tail_flat <= '0;
-      cq_phase     <= '1;        // phase initiale = 1
+      cq_phase     <= '1;        // initial phase = 1
       cpl_wr_req   <= 1'b0;
       cpl_entry    <= '0;
     end else begin

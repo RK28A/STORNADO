@@ -1,27 +1,27 @@
-// nvme_cmd_decoder.sv — Décodage d'une SQE de 64 octets et routage.
-// Entrée : mot de commande dword 0 (CDW0) + champs extraits par le fetch DMA.
-// Sortie : classification Admin/IO, opcode, validation de base. La validation
-// fine (plages LBA, alignement) est faite par les moteurs en aval.
+// nvme_cmd_decoder.sv - Decode a 64-byte SQE and route it.
+// Input: command dword 0 (CDW0) plus the fields extracted by the DMA fetch.
+// Output: Admin/IO classification, opcode, basic validation. Fine-grained
+// validation (LBA ranges, alignment) is done by the downstream engines.
 //
-// NB : ce module ne lit pas lui-même la mémoire hôte ; il reçoit la SQE déjà
-// rapatriée par le moteur DMA (séparation nette fetch / décodage).
+// Note: this module does not read host memory itself; it receives the SQE
+// already fetched by the DMA engine (clean fetch / decode separation).
 import nvme_pkg::*;
 
 module nvme_cmd_decoder (
   input  logic        clk,
   input  logic        rst_n,
 
-  input  logic        cmd_valid,       // une SQE complète est présentée
+  input  logic        cmd_valid,       // a complete SQE is presented
   output logic        cmd_ready,
-  input  logic        is_admin_queue,  // provient du qid (0 = admin)
+  input  logic        is_admin_queue,  // derived from qid (0 = admin)
   input  logic [31:0] cdw0,            // [7:0]=OPC, [15:14]=PSDT, [31:16]=CID
   input  logic [31:0] nsid,
   input  logic [63:0] prp1,
   input  logic [63:0] prp2,
-  input  logic [63:0] slba,            // pour Read/Write (CDW10/11)
-  input  logic [31:0] nlb_dw,          // CDW12 : NLB au bit [15:0]
+  input  logic [63:0] slba,            // for Read/Write (CDW10/11)
+  input  logic [31:0] nlb_dw,          // CDW12: NLB in bits [15:0]
 
-  // commande classifiée vers l'exécuteur
+  // classified command to the executor
   output logic        issue_valid,
   input  logic        issue_ready,
   output logic [7:0]  issue_opcode,
@@ -30,8 +30,8 @@ module nvme_cmd_decoder (
   output logic [63:0] issue_prp1,
   output logic [63:0] issue_prp2,
   output logic [63:0] issue_slba,
-  output logic [15:0] issue_nlb,       // nombre de blocs (0-based dans la spec)
-  output logic        issue_unsupported // opcode inconnu -> complétion erreur
+  output logic [15:0] issue_nlb,       // number of blocks (0-based in the spec)
+  output logic        issue_unsupported // unknown opcode -> error completion
 );
   wire [7:0]  opc = cdw0[7:0];
   wire [15:0] cid = cdw0[31:16];
@@ -46,7 +46,7 @@ module nvme_cmd_decoder (
     io_supported = (o inside {IO_READ, IO_WRITE, IO_FLUSH});
   endfunction
 
-  assign cmd_ready    = issue_ready;        // flux simple 1:1
+  assign cmd_ready    = issue_ready;        // simple 1:1 flow
   assign issue_valid  = cmd_valid;
   assign issue_opcode = opc;
   assign issue_is_admin = is_admin_queue;

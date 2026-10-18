@@ -1,17 +1,17 @@
-// async_fifo.sv — FIFO à deux horloges, pointeurs Gray resynchronisés.
-// Usage : franchir le CDC entre domaine lien PCIe (user clock) et domaine
-// cœur NVMe, ou entre cœur et domaine USB. Profondeur puissance de 2.
+// async_fifo.sv - Dual-clock FIFO, resynchronized Gray pointers.
+// Use: cross the CDC between the PCIe link domain (user clock) and the NVMe core
+// domain, or between the core and the USB domain. Depth must be a power of two.
 module async_fifo #(
   parameter int WIDTH = 32,
   parameter int DEPTH = 16
 )(
-  // domaine écriture
+  // write domain
   input  logic             wr_clk,
   input  logic             wr_rst_n,
   input  logic             wr_valid,
   output logic             wr_ready,
   input  logic [WIDTH-1:0] wr_data,
-  // domaine lecture
+  // read domain
   input  logic             rd_clk,
   input  logic             rd_rst_n,
   output logic             rd_valid,
@@ -29,7 +29,7 @@ module async_fifo #(
     return b ^ (b >> 1);
   endfunction
 
-  // ---- domaine écriture ----
+  // ---- write domain ----
   wire do_wr = wr_valid & wr_ready;
   wire [AW:0] wbin_next = wbin + (do_wr ? 1'b1 : 1'b0);
   wire wfull = (bin2gray(wbin_next) == {~rgray_wr2[AW:AW-1], rgray_wr2[AW-2:0]});
@@ -48,7 +48,7 @@ module async_fifo #(
   end
   assign wr_ready = ~wfull;
 
-  // ---- domaine lecture ----
+  // ---- read domain ----
   wire [AW:0] rbin_next = rbin + ((rd_valid & rd_ready) ? 1'b1 : 1'b0);
   wire rempty = (rgray == wgray_rd2);
 

@@ -1,14 +1,14 @@
-// nvme_doorbells.sv — Registres doorbell SQ/CQ (BAR0, base OFF_DBRANGE).
-// Layout NVMe : pour la queue y, SQyTDBL à (0x1000 + 2y*(4<<DSTRD)),
-// CQyHDBL à (0x1000 + (2y+1)*(4<<DSTRD)). DSTRD=0 -> stride 4 octets.
+// nvme_doorbells.sv - SQ/CQ doorbell registers (BAR0, base OFF_DBRANGE).
+// NVMe layout: for queue y, SQyTDBL at (0x1000 + 2y*(4<<DSTRD)),
+// CQyHDBL at (0x1000 + (2y+1)*(4<<DSTRD)). DSTRD=0 -> 4-byte stride.
 //
-// Les pointeurs sont exposés en BUS PACKÉ (sq_tail_flat/cq_head_flat) plutôt
-// qu'en tableau non-packé : plus portable (Icarus gère mal les ports tableaux).
-// Accès queue q : flat[q*16 +: 16].
+// Pointers are exposed as a PACKED BUS (sq_tail_flat/cq_head_flat) rather than
+// an unpacked array: more portable (Icarus handles array ports poorly).
+// Access queue q: flat[q*16 +: 16].
 import nvme_pkg::*;
 
 module nvme_doorbells #(
-  parameter int NUM_QUEUES = 2  // 0 = Admin, 1 = première paire I/O
+  parameter int NUM_QUEUES = 2  // 0 = Admin, 1 = first I/O pair
 )(
   input  logic              clk,
   input  logic              rst_n,
@@ -20,17 +20,17 @@ module nvme_doorbells #(
   output logic [REG_DW-1:0] db_rdata,
   output logic              db_ack,
 
-  // événement : une doorbell SQ a été sonnée (déclenche le fetch de commande)
+  // event: an SQ doorbell was rung (triggers the command fetch)
   output logic                          sq_rung,
   output logic [$clog2(NUM_QUEUES)-1:0] sq_rung_qid,
 
   output logic [NUM_QUEUES*16-1:0] sq_tail_flat,
   output logic [NUM_QUEUES*16-1:0] cq_head_flat
 );
-  // index relatif = (addr - 0x1000) >> 2
+  // relative index = (addr - 0x1000) >> 2
   wire [REG_AW-1:0] rel   = db_addr - OFF_DBRANGE;
   wire [15:0]       idx   = rel[17:2];
-  wire              is_cq = idx[0];          // impair = CQ head
+  wire              is_cq = idx[0];          // odd = CQ head
   wire [15:0]       qid   = idx >> 1;
   wire              in_range = db_sel && (qid < NUM_QUEUES);
 
@@ -56,7 +56,7 @@ module nvme_doorbells #(
   end
 
   always_comb begin
-    db_rdata = 32'h0; // doorbells write-only côté hôte ; relecture = 0
+    db_rdata = 32'h0; // doorbells are write-only on the host side; readback = 0
     db_ack   = db_sel;
   end
 endmodule : nvme_doorbells

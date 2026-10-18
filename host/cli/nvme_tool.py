@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""nvme-tool — CLI diagnostic STORNADO (PC secondaire).
+"""nvme-tool - STORNADO diagnostic CLI (secondary PC).
 
-Sans --port, utilise le transport mock (émulateur in-process) : la CLI tourne
-sans matériel. Avec --port /dev/ttyUSBx (ou COMx), parle au lien USB réel via
-pyserial.
+Without --port, it uses the mock transport (in-process emulator): the CLI runs
+with no hardware. With --port /dev/ttyUSBx (or COMx), it talks to the real USB
+link via pyserial.
 
-Les valeurs renvoyées par le mock sont synthétiques, pas des mesures.
+Values returned by the mock are synthetic, not measurements.
 """
 from __future__ import annotations
 
@@ -97,12 +97,12 @@ COMMANDS = {
 
 
 def main(argv=None):
-    # default=SUPPRESS : évite que le sous-parseur écrase la valeur donnée avant
-    # le sous-commande (gotcha argparse avec parents).
+    # default=SUPPRESS: prevents the subparser from overwriting a value given
+    # before the subcommand (argparse parents gotcha).
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--port", default=argparse.SUPPRESS, help="port série (defaut: transport mock)")
-    common.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help="sortie JSON")
-    common.add_argument("--debug", action="store_true", default=argparse.SUPPRESS, help="trace les trames (TX/RX)")
+    common.add_argument("--port", default=argparse.SUPPRESS, help="serial port (default: mock transport)")
+    common.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help="JSON output")
+    common.add_argument("--debug", action="store_true", default=argparse.SUPPRESS, help="trace frames (TX/RX)")
 
     p = argparse.ArgumentParser(description="STORNADO diagnostic CLI", parents=[common])
     sub = p.add_subparsers(dest="cmd", required=True)

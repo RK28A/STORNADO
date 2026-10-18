@@ -1,11 +1,11 @@
-// stornado_top.sv — Top-level STORNADO : câblage des blocs portables.
-// Assemble pcie_wrapper (spécifique IP) + nvme_regs + doorbells + queue_mgr +
+// stornado_top.sv - STORNADO top level: wiring of the portable blocks.
+// Assembles pcie_wrapper (IP-specific) + nvme_regs + doorbells + queue_mgr +
 // cmd_decoder + dma_engine + storage_backend + usb_packet_framer.
 //
-// ÉTAT : intégration de référence. Le chemin de données complet (fetch SQE réel,
-// walk des PRP, exécution Read/Write, génération Identify) est partiellement
-// squelettique — voir les TODO-IP / TODO-SPEC dans chaque sous-module et
-// docs/REVIEW.md. Rien ici n'est "prêt à flasher".
+// STATE: reference integration. The full datapath (real SQE fetch, PRP walk,
+// Read/Write execution, Identify generation) is partly skeletal - see the
+// TODO-IP / TODO-SPEC markers in each submodule and docs/REVIEW.md. Nothing here
+// is "ready to flash".
 import nvme_pkg::*;
 
 module stornado_top #(
@@ -34,12 +34,12 @@ module stornado_top #(
   assign mmio_rdata = sel_db ? db_rdata : reg_rdata;
   assign mmio_ack   = sel_db ? db_ack   : reg_ack;
 
-  // ---- valeurs registres ----
+  // ---- register values ----
   logic [63:0] asq_base, acq_base;
   logic [11:0] asq_size, acq_size;
   logic        ctrl_enabled, ctrl_ready, fatal_error;
 
-  // ---- doorbells / queues (bus packés) ----
+  // ---- doorbells / queues (packed buses) ----
   logic                          sq_rung;
   logic [$clog2(NUM_QUEUES)-1:0] sq_rung_qid;
   logic [NUM_QUEUES*16-1:0]      sq_tail_flat, cq_head_flat;
@@ -120,5 +120,5 @@ module stornado_top #(
     .frame_type, .frame_seq, .frame_plen, .frame_crc_ok
   );
 
-  assign fatal_error = 1'b0; // relié aux détecteurs d'erreur lors de l'intégration
+  assign fatal_error = 1'b0; // tied to the error detectors during integration
 endmodule : stornado_top
