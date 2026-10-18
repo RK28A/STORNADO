@@ -10,6 +10,7 @@
 | `test-plan.md` | 10 jalons, critères d'acceptation |
 | `risk-register.md` | Risques : prob/gravité/détection/atténuation |
 | `variants-costs.md` | Variantes A/B/C, coûts, compromis |
+| `REVIEW.md` | Audit : bugs corrigés + points à surveiller, activation du debug |
 
 Format de reporting imposé (PARTIE N) : présent en fin de `phase0` et `phase1`,
 à reproduire à chaque phase franchie.

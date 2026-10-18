@@ -22,6 +22,15 @@
 #define HEADER_LEN 18u
 #define DIAG_BUFFER_BYTES 4096u
 
+/* Debug activable à la compilation : -DSTORNADO_DEBUG.
+ * dbg_puts() est un stub à relier à l'UART de debug de la cible. */
+#ifdef STORNADO_DEBUG
+extern void dbg_puts(const char *s);
+#define DBG(s) dbg_puts(s)
+#else
+#define DBG(s) ((void)0)
+#endif
+
 enum msg_type {
     MT_PING = 0x0001, MT_GET_INFO = 0x0002, MT_GET_STATUS = 0x0003,
     MT_GET_TEMPERATURE = 0x0004, MT_GET_COUNTERS = 0x0005,
@@ -90,6 +99,7 @@ static void send_error(uint32_t seq, uint16_t code)
 
 void dispatch(uint16_t type, uint32_t seq, const uint8_t *payload, uint32_t plen)
 {
+    DBG("dispatch\n");
     switch (type) {
     case MT_PING:
         send_frame(MT_ACK, seq, payload, plen);
@@ -124,7 +134,8 @@ void dispatch(uint16_t type, uint32_t seq, const uint8_t *payload, uint32_t plen
         send_frame(MT_ACK, seq, 0, 0);
         break;
     case MT_READ_DIAG_BUFFER: {
-        uint32_t n = plen >= 4 ? *(const uint32_t *)payload : 0;
+        uint32_t n = 0;
+        if (plen >= 4) memcpy(&n, payload, 4);   /* évite une lecture non alignée */
         if (n > DIAG_BUFFER_BYTES) { send_error(seq, E_OUT_OF_RANGE); break; }
         send_frame(MT_ACK, seq, diag_buffer, n);
         break;

@@ -49,8 +49,12 @@ l'Artix-7). Pour le lint : `verible-verilog-lint` (optionnel).
 ```bash
 make test-host      # tests du protocole USB (Python)  -> 7 passed
 make sim            # testbenches RTL via Icarus        -> *: PASS
+make sim-debug      # idem avec traces RTL (STORNADO_DEBUG)
 make cli            # démo CLI sur transport mock (sans FPGA)
 ```
+
+Debug : `make sim-debug` (RTL), `nvme_tool.py --debug <cmd>` (hôte, trace TX/RX),
+`-DSTORNADO_DEBUG` (firmware). Audit des bugs/limites : `docs/REVIEW.md`.
 
 ### 3. CLI diagnostic (PC secondaire)
 ```bash

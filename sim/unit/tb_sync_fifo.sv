@@ -1,4 +1,5 @@
 // tb_sync_fifo.sv — Testbench unitaire sync_fifo (Icarus/Verilator).
+// N'utilise que des constructions portables (pas de do..while).
 `timescale 1ns/1ps
 module tb_sync_fifo;
   localparam int W = 8, D = 4;
@@ -13,15 +14,19 @@ module tb_sync_fifo;
   always #5 clk = ~clk;
 
   task automatic push(input logic [W-1:0] d);
+    @(posedge clk);
+    while (!wr_ready) @(posedge clk);
     wr_data = d; wr_valid = 1;
-    do @(posedge clk); while (!wr_ready);
+    @(posedge clk);
     wr_valid = 0;
   endtask
 
   task automatic pop(output logic [W-1:0] d);
-    rd_ready = 1;
-    do @(posedge clk); while (!rd_valid);
-    d = rd_data; @(posedge clk); rd_ready = 0;
+    @(posedge clk);
+    while (!rd_valid) @(posedge clk);
+    d = rd_data; rd_ready = 1;
+    @(posedge clk);
+    rd_ready = 0;
   endtask
 
   logic [W-1:0] got;
@@ -30,11 +35,12 @@ module tb_sync_fifo;
     repeat (3) @(posedge clk); rst_n = 1;
 
     for (int i = 0; i < D; i++) push(i + 8'hA0);
-    if (wr_ready) begin $error("FIFO devrait etre plein"); errors++; end
+    @(posedge clk);
+    if (wr_ready) begin $display("FAIL: FIFO devrait etre plein"); errors++; end
 
     for (int i = 0; i < D; i++) begin
       pop(got);
-      if (got !== (i + 8'hA0)) begin $error("ordre FIFO KO: %0h", got); errors++; end
+      if (got !== (i + 8'hA0)) begin $display("FAIL ordre: %0h", got); errors++; end
     end
 
     if (errors == 0) $display("TB_SYNC_FIFO: PASS");

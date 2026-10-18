@@ -1,7 +1,7 @@
 // tb_init_sequence.sv — Intégration légère : registres + doorbells câblés.
-// Sonne la doorbell SQ admin après init et vérifie l'événement sq_rung.
-// Ne couvre PAS le fetch DMA réel (dépend de l'IP PCIe) : cf. docs/test-plan.md
-// jalons 3-6 pour la validation sur matériel.
+// Sonne la doorbell SQ admin après init et vérifie le pointeur sq_tail.
+// Ne couvre PAS le fetch DMA réel (dépend de l'IP PCIe) : cf. docs/test-plan.md.
+// Bus de pointeurs packés (sq_tail_flat/cq_head_flat).
 `timescale 1ns/1ps
 import nvme_pkg::*;
 
@@ -24,7 +24,7 @@ module tb_init_sequence;
   logic ctrl_enabled, ctrl_ready;
 
   logic sq_rung; logic [$clog2(NQ)-1:0] sq_rung_qid;
-  logic [15:0] sq_tail[NQ], cq_head[NQ];
+  logic [NQ*16-1:0] sq_tail_flat, cq_head_flat;
 
   nvme_regs u_regs (
     .clk, .rst_n, .reg_sel(sel_reg), .reg_we(we), .reg_addr(addr),
@@ -35,7 +35,7 @@ module tb_init_sequence;
   nvme_doorbells #(.NUM_QUEUES(NQ)) u_db (
     .clk, .rst_n, .db_sel(sel_db), .db_we(we), .db_addr(addr),
     .db_wdata(wdata), .db_rdata(db_rd), .db_ack(db_ack),
-    .sq_rung, .sq_rung_qid, .sq_tail, .cq_head
+    .sq_rung, .sq_rung_qid, .sq_tail_flat, .cq_head_flat
   );
 
   always #5 clk = ~clk;
@@ -44,18 +44,19 @@ module tb_init_sequence;
     @(posedge clk); sel=0; we=0;
   endtask
 
-  logic [31:0] v;
   initial begin
     sel=0; we=0; wstrb=0; addr=0; wdata=0;
     repeat(3) @(posedge clk); rst_n=1;
     wr(OFF_AQA, 32'h001F_001F);
     wr(OFF_CC, 32'h0046_0001);
     repeat(20) @(posedge clk);
-    if (!ctrl_ready) begin $error("ctrl pas pret"); errors++; end
+    if (!ctrl_ready) begin $display("FAIL ctrl pas pret"); errors++; end
 
     // sonne SQ0 tail = 1
     wr(OFF_DBRANGE, 32'h0000_0001);
-    if (sq_tail[0] !== 16'd1) begin $error("sq_tail KO"); errors++; end
+    @(posedge clk);
+    if (sq_tail_flat[15:0] !== 16'd1) begin $display("FAIL sq_tail: %0d", sq_tail_flat[15:0]); errors++; end
+    if (!sq_rung) begin $display("NOTE: sq_rung impulsion deja retombee (ok si 1 cycle)"); end
 
     if (errors==0) $display("TB_INIT_SEQUENCE: PASS");
     else            $display("TB_INIT_SEQUENCE: FAIL (%0d)", errors);

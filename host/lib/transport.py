@@ -8,10 +8,12 @@ MockTransport    : in-process device emulator so the CLI and tests run with no
 from __future__ import annotations
 
 import io
+import logging
 import struct
-import time
 
 from .protocol import Frame, MsgType, ErrorCode, read_frame
+
+log = logging.getLogger("stornado.transport")
 
 
 class Transport:
@@ -26,10 +28,15 @@ class SerialTransport(Transport):
         self._ser = serial.Serial(port, baud, timeout=timeout)
 
     def send(self, frame: Frame) -> None:
-        self._ser.write(frame.encode())
+        raw = frame.encode()
+        log.debug("TX type=0x%04x seq=%d plen=%d raw=%s",
+                  frame.msg_type, frame.seq, len(frame.payload), raw.hex())
+        self._ser.write(raw)
 
     def recv(self) -> Frame:
-        return read_frame(self._ser)
+        f = read_frame(self._ser)
+        log.debug("RX type=0x%04x seq=%d plen=%d", f.msg_type, f.seq, len(f.payload))
+        return f
 
     def close(self) -> None:
         self._ser.close()
@@ -44,11 +51,15 @@ class MockTransport(Transport):
         self._bench = False
 
     def send(self, frame: Frame) -> None:
+        log.debug("TX(mock) type=0x%04x seq=%d plen=%d",
+                  frame.msg_type, frame.seq, len(frame.payload))
         self._out = io.BytesIO(self._reply(frame).encode())
 
     def recv(self) -> Frame:
         self._out.seek(0)
-        return read_frame(self._out)
+        f = read_frame(self._out)
+        log.debug("RX(mock) type=0x%04x seq=%d plen=%d", f.msg_type, f.seq, len(f.payload))
+        return f
 
     def close(self) -> None:
         pass

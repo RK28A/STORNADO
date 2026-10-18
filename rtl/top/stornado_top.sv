@@ -4,26 +4,22 @@
 //
 // ÉTAT : intégration de référence. Le chemin de données complet (fetch SQE réel,
 // walk des PRP, exécution Read/Write, génération Identify) est partiellement
-// squelettique — voir les TODO-IP / TODO-SPEC dans chaque sous-module et le
-// plan de test docs/test-plan.md. Rien ici n'est "prêt à flasher".
+// squelettique — voir les TODO-IP / TODO-SPEC dans chaque sous-module et
+// docs/REVIEW.md. Rien ici n'est "prêt à flasher".
 import nvme_pkg::*;
 
 module stornado_top #(
   parameter int LANES = 4,
   parameter int NUM_QUEUES = 2
 )(
-  // PCIe physique
   input  logic              refclk_p, refclk_n, perst_n,
   input  logic [LANES-1:0]  pcie_rx_p, pcie_rx_n,
   output logic [LANES-1:0]  pcie_tx_p, pcie_tx_n,
-  // USB (octet-stream vers PHY)
   input  logic              usb_clk, usb_rst_n,
   input  logic              usb_rx_valid, input logic [7:0] usb_rx_data,
   output logic              usb_rx_ready,
-  // supervision
   output logic              link_up
 );
-  // ---- horloges / resets ----
   logic user_clk, user_rst_n;
 
   // ---- MMIO ----
@@ -33,7 +29,6 @@ module stornado_top #(
   logic [3:0]        mmio_wstrb;
   logic              mmio_ack, reg_ack, db_ack;
 
-  // routage : doorbells si addr >= 0x1000, sinon registres
   wire sel_db  = mmio_sel && (mmio_addr >= OFF_DBRANGE);
   wire sel_reg = mmio_sel && (mmio_addr <  OFF_DBRANGE);
   assign mmio_rdata = sel_db ? db_rdata : reg_rdata;
@@ -44,12 +39,12 @@ module stornado_top #(
   logic [11:0] asq_size, acq_size;
   logic        ctrl_enabled, ctrl_ready, fatal_error;
 
-  // ---- doorbells / queues ----
-  logic                            sq_rung;
-  logic [$clog2(NUM_QUEUES)-1:0]   sq_rung_qid;
-  logic [15:0]                     sq_tail [NUM_QUEUES], cq_head [NUM_QUEUES];
-  logic [15:0]                     sq_head [NUM_QUEUES];
-  logic                            sq_nonempty [NUM_QUEUES];
+  // ---- doorbells / queues (bus packés) ----
+  logic                          sq_rung;
+  logic [$clog2(NUM_QUEUES)-1:0] sq_rung_qid;
+  logic [NUM_QUEUES*16-1:0]      sq_tail_flat, cq_head_flat;
+  logic [NUM_QUEUES*16-1:0]      sq_head_flat, cq_tail_flat;
+  logic [NUM_QUEUES-1:0]         sq_nonempty, cq_phase;
 
   // ---- DMA <-> PCIe ----
   logic         mem_req_valid, mem_req_ready, mem_req_we, mem_rvalid, mem_err;
@@ -90,15 +85,15 @@ module stornado_top #(
     .clk(user_clk), .rst_n(user_rst_n),
     .db_sel(sel_db), .db_we(mmio_we), .db_addr(mmio_addr),
     .db_wdata(mmio_wdata), .db_rdata(db_rdata), .db_ack(db_ack),
-    .sq_rung, .sq_rung_qid, .sq_tail, .cq_head
+    .sq_rung, .sq_rung_qid, .sq_tail_flat, .cq_head_flat
   );
 
   nvme_queue_mgr #(.NUM_QUEUES(NUM_QUEUES)) u_qm (
     .clk(user_clk), .rst_n(user_rst_n),
-    .sq_tail, .cq_head, .sq_size(asq_size),
-    .sq_head, .sq_nonempty, .sq_pop(1'b0), .sq_pop_qid('0),
+    .sq_tail_flat, .cq_head_flat, .sq_size(asq_size),
+    .sq_head_flat, .sq_nonempty, .sq_pop(1'b0), .sq_pop_qid('0),
     .cpl_push(1'b0), .cpl_qid('0), .cpl_cid('0), .cpl_status('0),
-    .cq_tail(), .cq_phase(), .cpl_entry(), .cpl_wr_req()
+    .cq_tail_flat, .cq_phase, .cpl_entry(), .cpl_wr_req()
   );
 
   dma_engine u_dma (

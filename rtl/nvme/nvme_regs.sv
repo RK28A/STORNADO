@@ -92,6 +92,10 @@ module nvme_regs (
     if (!rst_n) begin
       state <= S_DISABLED; dly <= '0; csts_q <= '0;
     end else begin
+`ifdef STORNADO_DEBUG
+      if (state != state_n) $display("[%0t] NVMe init FSM %0d -> %0d (CC.EN=%0b)",
+                                     $time, state, state_n, cc_en);
+`endif
       state <= state_n;
       csts_q[1] <= fatal_error ? 1'b1 : csts_q[1]; // CFS collant jusqu'au reset
       case (state)

@@ -83,6 +83,10 @@ module dma_engine #(
     if (!rst_n) begin
       st <= D_IDLE; remaining <= '0; cur_host_addr <= '0; cur_be_addr <= '0;
     end else begin
+`ifdef STORNADO_DEBUG
+      if (st != st_n) $display("[%0t] DMA %0d -> %0d (rem=%0d host=%0h be=%0h)",
+                               $time, st, st_n, remaining, cur_host_addr, cur_be_addr);
+`endif
       st <= st_n;
       unique case (st)
         D_IDLE : if (req_valid) begin
