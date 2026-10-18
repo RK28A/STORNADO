@@ -2,10 +2,11 @@
 // Assembles pcie_wrapper (IP-specific) + nvme_regs + doorbells + queue_mgr +
 // cmd_decoder + dma_engine + storage_backend + usb_packet_framer.
 //
-// STATE: reference integration. The full datapath (real SQE fetch, PRP walk,
-// Read/Write execution, Identify generation) is partly skeletal - see the
-// TODO-IP / TODO-SPEC markers in each submodule and docs/REVIEW.md. Nothing here
-// is "ready to flash".
+// STATE: reference integration. The full datapath (real SQE fetch, Read/Write
+// execution, Identify generation) is partly skeletal - see the TODO-IP /
+// TODO-SPEC markers in each submodule and docs/REVIEW.md. The DMA engine now
+// implements a real PRP walk (verified by sim/integration/tb_dma_prp.sv) but is
+// tied off here until the SQE source is wired. Nothing is "ready to flash".
 import nvme_pkg::*;
 
 module stornado_top #(
@@ -46,16 +47,16 @@ module stornado_top #(
   logic [NUM_QUEUES*16-1:0]      sq_head_flat, cq_tail_flat;
   logic [NUM_QUEUES-1:0]         sq_nonempty, cq_phase;
 
-  // ---- DMA <-> PCIe ----
+  // ---- DMA <-> PCIe memory request ----
   logic         mem_req_valid, mem_req_ready, mem_req_we, mem_rvalid, mem_err;
   logic [63:0]  mem_req_addr;
-  logic [10:0]  mem_req_len_dw;
-  logic [127:0] mem_wdata, mem_rdata;
+  logic [12:0]  mem_req_len_bytes;
+  logic [127:0] mem_rdata;
 
   // ---- DMA <-> backend ----
-  logic         be_req_valid, be_req_ready, be_we, be_rvalid, be_oob;
+  logic         be_req_valid, be_req_ready, be_we;
   logic [63:0]  be_addr;
-  logic [127:0] be_wdata, be_rdata;
+  logic [12:0]  be_len_bytes;
 
   // ---- USB ----
   logic        frame_valid, frame_crc_ok;
@@ -67,8 +68,8 @@ module stornado_top #(
     .rx_p(pcie_rx_p), .rx_n(pcie_rx_n), .tx_p(pcie_tx_p), .tx_n(pcie_tx_n),
     .user_clk, .user_rst_n, .link_up, .link_width(), .link_speed(),
     .mmio_sel, .mmio_we, .mmio_addr, .mmio_wdata, .mmio_wstrb, .mmio_rdata, .mmio_ack,
-    .mem_req_valid, .mem_req_ready, .mem_req_we, .mem_req_addr, .mem_req_len_dw,
-    .mem_wdata, .mem_rdata, .mem_rvalid, .mem_err,
+    .mem_req_valid, .mem_req_ready, .mem_req_we, .mem_req_addr,
+    .mem_req_len_bytes, .mem_rdata, .mem_rvalid, .mem_err,
     .msix_req(1'b0), .msix_vector(11'd0)
   );
 
@@ -90,27 +91,29 @@ module stornado_top #(
 
   nvme_queue_mgr #(.NUM_QUEUES(NUM_QUEUES)) u_qm (
     .clk(user_clk), .rst_n(user_rst_n),
-    .sq_tail_flat, .cq_head_flat, .sq_size(asq_size),
+    .sq_tail_flat, .cq_head_flat, .sq_size(asq_size), .cq_size(acq_size),
     .sq_head_flat, .sq_nonempty, .sq_pop(1'b0), .sq_pop_qid('0),
     .cpl_push(1'b0), .cpl_qid('0), .cpl_cid('0), .cpl_status('0),
     .cq_tail_flat, .cq_phase, .cpl_entry(), .cpl_wr_req()
   );
 
+  // DMA engine: real PRP walk inside, tied off here until the SQE source exists.
   dma_engine u_dma (
     .clk(user_clk), .rst_n(user_rst_n),
     .req_valid(1'b0), .req_ready(), .req_is_write(1'b0),
     .req_prp1('0), .req_prp2('0), .req_len_bytes('0), .req_backend_addr('0),
-    .mem_req_valid, .mem_req_ready, .mem_req_we, .mem_req_addr, .mem_req_len_dw,
-    .mem_wdata, .mem_rdata, .mem_rvalid, .mem_err,
-    .be_req_valid, .be_req_ready, .be_we, .be_addr, .be_wdata, .be_rdata,
+    .mem_req_valid, .mem_req_ready, .mem_req_we, .mem_req_addr,
+    .mem_req_len_bytes, .mem_rdata, .mem_rvalid, .mem_err,
+    .be_req_valid, .be_req_ready, .be_we, .be_addr, .be_len_bytes,
     .done(), .error()
   );
 
+  // Storage backend keeps a word-level interface; the DMA<->backend byte
+  // streaming adapter is wired during integration. Tied to safe defaults here.
   storage_backend_ram u_be (
     .clk(user_clk), .rst_n(user_rst_n),
     .req_valid(be_req_valid), .req_ready(be_req_ready), .we(be_we),
-    .addr(be_addr), .wdata(be_wdata), .rdata(be_rdata),
-    .rvalid(be_rvalid), .oob_error(be_oob)
+    .addr(be_addr), .wdata(128'd0), .rdata(), .rvalid(), .oob_error()
   );
 
   usb_packet_framer u_usb (

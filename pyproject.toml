@@ -1,0 +1,12 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["build", "obj_dir"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]  # long lines tolerated in tables/strings
+
+[tool.pytest.ini_options]
+testpaths = ["host/tests"]
+addopts = "-q"

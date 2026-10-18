@@ -12,7 +12,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r host/requirements.txt
-      - run: python -m pytest host/tests -q
+      - run: python -m pytest host/tests -q   # includes the C<->Python vector test (gcc)
+      - run: python tools/gen_register_doc.py  # generator must run
 
   rtl-sim:
     runs-on: ubuntu-latest
@@ -22,3 +23,18 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y iverilog
       - name: Run RTL testbenches
         run: make sim
+      - name: Upload sim build on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-build
+          path: build/
+
+  firmware-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile firmware (warnings as errors)
+        run: |
+          gcc -c -std=c11 -Wall -Wextra -Werror -I firmware firmware/stornado_frame.c -o /tmp/sf.o
+          gcc -c -std=c11 -Wall -Wextra -Werror -I firmware firmware/stornado_diag.c -o /tmp/sd.o

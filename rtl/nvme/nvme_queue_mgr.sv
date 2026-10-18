@@ -16,6 +16,7 @@ module nvme_queue_mgr #(
   input  logic [NUM_QUEUES*16-1:0] sq_tail_flat,
   input  logic [NUM_QUEUES*16-1:0] cq_head_flat,
   input  logic [11:0]              sq_size,
+  input  logic [11:0]              cq_size,
 
   // SQ head maintained locally (advances when an SQE is consumed)
   output logic [NUM_QUEUES*16-1:0] sq_head_flat,
@@ -66,8 +67,13 @@ module nvme_queue_mgr #(
         cpl_entry.cdw2 <= {sq_head_flat[cpl_qid*16 +: 16], 16'h0};
         cpl_entry.cdw3 <= {cpl_status, cq_phase[cpl_qid], cpl_cid};
         cpl_wr_req     <= 1'b1;
-        cq_tail_flat[cpl_qid*16 +: 16] <= cq_tail_cur + 16'd1;
-        if (cq_tail_cur + 16'd1 == 16'd0) cq_phase[cpl_qid] <= ~cq_phase[cpl_qid];
+        // wrap at the configured CQ size; toggle the phase tag on wrap
+        if (cq_tail_cur + 16'd1 >= cq_size) begin
+          cq_tail_flat[cpl_qid*16 +: 16] <= 16'd0;
+          cq_phase[cpl_qid]              <= ~cq_phase[cpl_qid];
+        end else begin
+          cq_tail_flat[cpl_qid*16 +: 16] <= cq_tail_cur + 16'd1;
+        end
 `ifdef STORNADO_DEBUG
         $display("[%0t] CQ%0d push cid=%0d status=%0h phase=%0b",
                  $time, cpl_qid, cpl_cid, cpl_status, cq_phase[cpl_qid]);

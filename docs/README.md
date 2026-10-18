@@ -12,6 +12,9 @@
 | `variants-costs.md` | Variants A/B/C, costs, trade-offs |
 | `REVIEW.md` | Audit: fixed bugs + points to watch, how to enable debug |
 | `ROADMAP.md` | Full P0/P1/P2 roadmap with exit gates and first sprint |
+| `feature-matrix.md` | Maturity per block (spec/code/sim/synth/fpga/win) |
+| `requirements-matrix.md` | Requirement -> test -> proof traceability |
+| `register-map-generated.md` | Auto-generated from `tools/registers.json` |
 
 Mandatory reporting format (PART N): present at the end of `phase0` and `phase1`,
 to reproduce at each completed phase.

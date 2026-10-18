@@ -21,6 +21,25 @@ exfiltration, no anti-cheat bypass.
 > Reality check: no bitstream and no hardware demo exist yet. Items checked below
 > are code/sim/tooling only; nothing is validated on real hardware or Windows.
 
+### Progress - sprint 2 (2026-10-18)
+Done at code/sim level (CI-verified where noted; nothing hardware-proven):
+- **DMA PRP walk** implemented (offset, PRP2-as-page vs list, page split, chaining)
+  with `tb_dma_prp` host-memory model. *(§6, REVIEW S3)*
+- **CQ wrap** now uses the configured CQ size + phase toggle. *(§5, REVIEW S2)*
+- New testbenches: `tb_async_fifo` (CDC), `tb_storage_backend` (LBA rw + OOB).
+  *(§2/§7, REVIEW S4/S8)*
+- **C<->Python wire-format** proven identical via a shared C frame builder +
+  `test_c_vectors` (gcc). *(§10)*
+- CLI: exit codes, `discover`, `--csv`, busy-port handling, version check. *(§9/§10)*
+- Register-doc generator from `tools/registers.json`. *(§14)*
+- Infra: `VERSIONS.md`, `feature-matrix.md`, `requirements-matrix.md`,
+  `make package`, ruff/clang-format, PR template, `CHANGELOG.md`, CI firmware job +
+  artifact upload. *(§0/§1/§13)*
+
+Still hardware-blocked in this environment (need an FPGA board, Vivado, Windows):
+all of §3 (physical PCIe), §8 (Windows), §12 (PCB), and Gates C-G. The SV
+testbenches run in CI (Icarus), not in the authoring sandbox.
+
 ## 0 - Current state and gates
 - [ ] Distinguish in the README "specified", "coded", "simulated", "synthesized", "tested on FPGA", "tested under Windows".
 - [ ] Publish a feature matrix with code version, proof and validation date.
@@ -253,12 +272,12 @@ exfiltration, no anti-cheat bypass.
 
 ## Recommended first sprint
 1. Fix the Makefile lint + wire automated CI. *(done)*
-2. Add async_fifo tb and storage_backend_ram tb.
-3. Fix the CQ phase and all configured queue sizes.
-4. Verify the PRP walk in simulation for legitimate NVMe operations.
-5. Run the Icarus and Verilator tests and fix incompatibilities.
-6. Choose an actually purchasable FPGA/PCIe board and freeze the IP interface.
-7. Revise the status docs to separate what works from what is still theoretical.
+2. Add async_fifo tb and storage_backend_ram tb. *(done)*
+3. Fix the CQ phase and all configured queue sizes. *(done, code; CQ-wrap tb TODO)*
+4. Verify the PRP walk in simulation for legitimate NVMe operations. *(done, tb_dma_prp)*
+5. Run the Icarus and Verilator tests and fix incompatibilities. *(pending: needs a sim host / CI run)*
+6. Choose an actually purchasable FPGA/PCIe board and freeze the IP interface. *(pending: your call + hardware)*
+7. Revise the status docs to separate what works from what is still theoretical. *(done: feature-matrix.md)*
 
 ## End-of-project criteria
 - The hardware is identified as an NVMe controller by Windows via its standard driver.

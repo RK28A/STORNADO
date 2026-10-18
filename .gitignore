@@ -1,6 +1,8 @@
-# build / sim
+# build / sim / release
 build/
 obj_dir/
+dist/
+SHA256SUMS
 *.vvp
 *.vcd
 *.fst

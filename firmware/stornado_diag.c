@@ -13,13 +13,8 @@
  */
 #include <stdint.h>
 #include <string.h>
+#include "stornado_frame.h"
 
-#define MAGIC0 'S'
-#define MAGIC1 'T'
-#define MAGIC2 'R'
-#define MAGIC3 'N'
-#define PROTO_VERSION 1u
-#define HEADER_LEN 18u
 #define DIAG_BUFFER_BYTES 4096u
 
 /* Debug enabled at compile time: -DSTORNADO_DEBUG.
@@ -52,34 +47,13 @@ extern void usb_write(const uint8_t *src, uint32_t len);
 extern int32_t hw_read_temperature_c(void);         /* hardware stub */
 extern void hw_read_nvme_state(uint8_t *en, uint8_t *rdy, uint8_t *cfs);
 
-/* CRC-32 IEEE 802.3, little-endian, identical to the Python/RTL codecs
- * (computed inline in send_frame over header+payload). */
-
 static void send_frame(uint16_t type, uint32_t seq,
                        const uint8_t *payload, uint32_t plen)
 {
-    uint8_t hdr[HEADER_LEN];
-    hdr[0]=MAGIC0; hdr[1]=MAGIC1; hdr[2]=MAGIC2; hdr[3]=MAGIC3;
-    hdr[4]=PROTO_VERSION; hdr[5]=HEADER_LEN;
-    hdr[6]=type & 0xFF;       hdr[7]=type >> 8;
-    hdr[8]=0;                 hdr[9]=0;                 /* flags */
-    hdr[10]=seq & 0xFF; hdr[11]=(seq>>8)&0xFF; hdr[12]=(seq>>16)&0xFF; hdr[13]=(seq>>24)&0xFF;
-    hdr[14]=plen & 0xFF; hdr[15]=(plen>>8)&0xFF; hdr[16]=(plen>>16)&0xFF; hdr[17]=(plen>>24)&0xFF;
-
-    /* CRC over VER..PAYLOAD */
-    uint32_t c = 0xFFFFFFFFu;
-    for (uint32_t i = 4; i < HEADER_LEN; i++) {
-        c ^= hdr[i]; for (int k=0;k<8;k++) c=(c&1u)?(c>>1)^0xEDB88320u:(c>>1);
-    }
-    for (uint32_t i = 0; i < plen; i++) {
-        c ^= payload[i]; for (int k=0;k<8;k++) c=(c&1u)?(c>>1)^0xEDB88320u:(c>>1);
-    }
-    c ^= 0xFFFFFFFFu;
-
-    usb_write(hdr, HEADER_LEN);
-    if (plen) usb_write(payload, plen);
-    uint8_t crcb[4] = { c&0xFF, (c>>8)&0xFF, (c>>16)&0xFF, (c>>24)&0xFF };
-    usb_write(crcb, 4);
+    static uint8_t frame[STORNADO_HEADER_LEN + DIAG_BUFFER_BYTES + 4];
+    if (plen > DIAG_BUFFER_BYTES) return;   /* defensive: bounded buffer */
+    size_t n = stornado_build_frame(frame, type, 0, seq, payload, plen);
+    usb_write(frame, (uint32_t)n);
 }
 
 static void send_error(uint32_t seq, uint16_t code)

@@ -11,9 +11,19 @@ import io
 import logging
 import struct
 
-from .protocol import Frame, MsgType, ErrorCode, read_frame
+from .protocol import Frame, MsgType, ErrorCode, VERSION, read_frame
 
 log = logging.getLogger("stornado.transport")
+
+
+class TransportError(Exception):
+    """Connection/port failure (bad port, permission, busy, timeout)."""
+
+
+def _check_version(f: Frame) -> Frame:
+    if f.version != VERSION:
+        log.warning("protocol version mismatch: device=%d host=%d", f.version, VERSION)
+    return f
 
 
 class Transport:
@@ -24,8 +34,14 @@ class Transport:
 
 class SerialTransport(Transport):
     def __init__(self, port: str, baud: int = 921600, timeout: float = 1.0):
-        import serial  # pyserial, optional
-        self._ser = serial.Serial(port, baud, timeout=timeout)
+        try:
+            import serial  # pyserial, optional
+        except ImportError as e:
+            raise TransportError("pyserial not installed (pip install pyserial)") from e
+        try:
+            self._ser = serial.Serial(port, baud, timeout=timeout)
+        except Exception as e:  # SerialException: bad port, permission, busy
+            raise TransportError(f"cannot open {port}: {e}") from e
 
     def send(self, frame: Frame) -> None:
         raw = frame.encode()
@@ -34,9 +50,18 @@ class SerialTransport(Transport):
         self._ser.write(raw)
 
     def recv(self) -> Frame:
-        f = read_frame(self._ser)
+        f = _check_version(read_frame(self._ser))
         log.debug("RX type=0x%04x seq=%d plen=%d", f.msg_type, f.seq, len(f.payload))
         return f
+
+    @staticmethod
+    def list_ports():
+        """Return available serial ports as (device, description) tuples."""
+        try:
+            from serial.tools import list_ports
+        except ImportError:
+            return []
+        return [(p.device, p.description) for p in list_ports.comports()]
 
     def close(self) -> None:
         self._ser.close()
@@ -57,7 +82,7 @@ class MockTransport(Transport):
 
     def recv(self) -> Frame:
         self._out.seek(0)
-        f = read_frame(self._out)
+        f = _check_version(read_frame(self._out))
         log.debug("RX(mock) type=0x%04x seq=%d plen=%d", f.msg_type, f.seq, len(f.payload))
         return f
 

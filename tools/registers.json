@@ -1,0 +1,30 @@
+{
+  "nvme": {
+    "title": "NVMe controller registers (BAR0)",
+    "spec": "NVMe Base 2.0c, section 3.1",
+    "registers": [
+      {"name": "CAP",   "offset": "0x00", "width": 64, "access": "RO",   "role": "Capabilities (MQES, CQR, TO, DSTRD, CSS, MPSMIN/MAX)"},
+      {"name": "VS",    "offset": "0x08", "width": 32, "access": "RO",   "role": "Version = 0x00020000 (2.0.0)"},
+      {"name": "INTMS", "offset": "0x0C", "width": 32, "access": "RW1S", "role": "Interrupt mask set"},
+      {"name": "INTMC", "offset": "0x10", "width": 32, "access": "RW1C", "role": "Interrupt mask clear"},
+      {"name": "CC",    "offset": "0x14", "width": 32, "access": "RW",   "role": "EN, CSS, MPS, IOSQES, IOCQES"},
+      {"name": "CSTS",  "offset": "0x1C", "width": 32, "access": "RO",   "role": "RDY, CFS, SHST"},
+      {"name": "NSSR",  "offset": "0x20", "width": 32, "access": "RW",   "role": "Subsystem reset (if supported)"},
+      {"name": "AQA",   "offset": "0x24", "width": 32, "access": "RW",   "role": "Admin SQ/CQ sizes"},
+      {"name": "ASQ",   "offset": "0x28", "width": 64, "access": "RW",   "role": "Admin SQ DMA base"},
+      {"name": "ACQ",   "offset": "0x30", "width": 64, "access": "RW",   "role": "Admin CQ DMA base"},
+      {"name": "SQ0TDBL", "offset": "0x1000+", "width": 32, "access": "RW", "role": "Doorbells (stride 4, DSTRD=0)"}
+    ]
+  },
+  "pci_config": {
+    "title": "PCIe Configuration Space (Type 0)",
+    "spec": "PCIe Base 4.0; class 0x010802 (NVMe)",
+    "registers": [
+      {"name": "Vendor ID",  "offset": "0x00", "width": 16, "access": "RO", "role": "Legitimate/test VID (never spoof a vendor)"},
+      {"name": "Device ID",  "offset": "0x02", "width": 16, "access": "RO", "role": "Project-owned DID"},
+      {"name": "Command",    "offset": "0x04", "width": 16, "access": "RW", "role": "Memory Space (bit1) + Bus Master (bit2)"},
+      {"name": "Class Code", "offset": "0x09", "width": 24, "access": "RO", "role": "0x010802"},
+      {"name": "BAR0/BAR1",  "offset": "0x10", "width": 64, "access": "RW", "role": "64-bit BAR mapping the NVMe registers"}
+    ]
+  }
+}
