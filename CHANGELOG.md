@@ -7,7 +7,9 @@ Commit convention: `type: summary` (feat, fix, docs, test, chore, refactor).
 ### Added
 - Real PRP walk in the DMA engine (PRP1 offset, PRP2-as-page vs PRP2-as-list,
   page-boundary split, list chaining); `tb_dma_prp` host-memory model.
-- Testbenches: `tb_async_fifo` (dual-clock CDC), `tb_storage_backend` (LBA rw + OOB).
+- Testbenches: `tb_async_fifo` (dual-clock CDC), `tb_storage_backend` (LBA rw + OOB),
+  `tb_usb_framer` (CRC good/bad + empty payload), `tb_cmd_decoder` (opcode
+  classification), `tb_queue_mgr` (CQ wrap + phase toggle).
 - Shared C frame builder (`firmware/stornado_frame.{c,h}`) and a C<->Python
   wire-format equivalence test (`test_c_vectors`).
 - CLI: exit codes (0/1/2/3), `discover`, `--csv` export, busy-port handling,

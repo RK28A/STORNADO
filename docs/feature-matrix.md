@@ -13,11 +13,11 @@ hardware · Win = proven under Windows.
 | Common FIFO (async/CDC) | ✅ | ✅ | ✅ | — | — | — | tb_async_fifo |
 | NVMe registers + init FSM | ✅ | ✅ | ✅ | — | — | — | tb_nvme_regs |
 | Doorbells | ✅ | ✅ | ✅ | — | — | — | tb_init_sequence |
-| Queue manager (SQ/CQ, phase) | ✅ | ✅ | 🟡 | — | — | — | partial (init tb); CQ-wrap tb TODO |
-| Command decoder | ✅ | ✅ | — | — | — | — | no dedicated tb yet |
+| Queue manager (SQ/CQ, phase) | ✅ | ✅ | ✅ | — | — | — | tb_init_sequence + tb_queue_mgr (CQ wrap) |
+| Command decoder | ✅ | ✅ | ✅ | — | — | — | tb_cmd_decoder (opcode classification) |
 | DMA engine (PRP walk) | ✅ | ✅ | ✅ | — | — | — | tb_dma_prp (3-page, PRP list) |
 | Storage backend (BRAM) | ✅ | ✅ | ✅ | — | — | — | tb_storage_backend |
-| USB framer (RTL) | ✅ | ✅ | 🟡 | — | — | — | logic rewritten; RTL byte-tb TODO |
+| USB framer (RTL) | ✅ | ✅ | ✅ | — | — | — | tb_usb_framer (CRC good/bad, empty payload) |
 | USB protocol (codec) | ✅ | ✅ | ✅ | n/a | — | — | test_protocol + test_c_vectors |
 | PCIe Hard IP wrapper | ✅ | 🟡 | — | — | — | — | stub (link_up=0), TODO-IP |
 | Host CLI / tools | ✅ | ✅ | ✅ | n/a | — | — | test_cli (mock) |

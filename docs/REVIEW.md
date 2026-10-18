@@ -21,13 +21,13 @@ validated on your side / in CI with Icarus + Verilator). The Python tests pass
 | # | Point | Where | Nature |
 |---|---|---|---|
 | S1 | Symbolic `RDY_DELAY` (!= real NVMe init latency) | `nvme_regs` | **[ASSUME]** - tune to real behavior |
-| S2 | Simplified CQ wrap (phase toggle on wrap to 0, real CQ size ignored) | `nvme_queue_mgr` | skeleton - complete with the CQ size |
+| S2 | ~~Simplified CQ wrap~~ FIXED: wraps at the configured CQ size + phase toggle | `nvme_queue_mgr` | done, tb_queue_mgr |
 | S3 | **No real PRP list walk** (PRP2 = list pointer if >2 pages); symbolic per-page DMA advance | `dma_engine` | `TODO` PART G - the DMA core is still to write |
-| S4 | `async_fifo` **has no testbench** | `rtl/common` | CDC to prove in sim (add a 2-clock tb) |
-| S5 | `inside` operator (opcode classification) | `nvme_cmd_decoder` | supported by Verilator; **confirm under Icarus -g2012** |
+| S4 | ~~`async_fifo` has no testbench~~ FIXED: `tb_async_fifo` (dual-clock) | `rtl/common` | done |
+| S5 | `inside` operator (opcode classification) | `nvme_cmd_decoder` | tb_cmd_decoder added; confirm under Icarus -g2012 in CI |
 | S6 | `pcie_wrapper` = **stub** (`link_up=0` tied): the top establishes no link as-is | `rtl/pcie` | normal - depends on the Hard IP (`TODO-IP`) |
 | S7 | Backend `mem[65536]` x128 b in sim (~1 MiB) | `storage_backend_ram` | heavy but ok; reduce `CAP_BYTES` for fast sim |
-| S8 | Backend byte->word address mapping | `storage_backend_ram` | verify in sim (LBA read/write test) |
+| S8 | ~~Backend byte->word address mapping~~ FIXED: verified | `storage_backend_ram` | done, tb_storage_backend |
 | S9 | Signals left unconnected at the top (expected lint warnings) | `stornado_top` | cosmetic; wire up during integration |
 | S10 | `make lint` uses `rtl/**/*.sv` (needs `globstar`) | `Makefile` | use `scripts/lint.sh` (find) instead |
 

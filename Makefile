@@ -5,6 +5,7 @@ RTL_NVME   := rtl/nvme/nvme_regs.sv rtl/nvme/nvme_doorbells.sv \
               rtl/nvme/nvme_cmd_decoder.sv rtl/nvme/nvme_queue_mgr.sv
 RTL_DMA    := rtl/dma/dma_engine.sv
 RTL_MEM    := rtl/memory/storage_backend_ram.sv
+RTL_USB    := rtl/usb/usb_packet_framer.sv
 BUILD      := build
 # Enable RTL traces: make sim DEFS=-DSTORNADO_DEBUG  (or: make sim-debug)
 DEFS       ?=
@@ -31,6 +32,9 @@ sim: $(BUILD)
 	iverilog -g2012 $(DEFS) -o $(BUILD)/tb_afifo   $(RTL_COMMON) sim/unit/tb_async_fifo.sv && vvp $(BUILD)/tb_afifo
 	iverilog -g2012 $(DEFS) -o $(BUILD)/tb_regs    $(RTL_COMMON) $(RTL_NVME) sim/unit/tb_nvme_regs.sv && vvp $(BUILD)/tb_regs
 	iverilog -g2012 $(DEFS) -o $(BUILD)/tb_backend $(RTL_COMMON) $(RTL_MEM) sim/unit/tb_storage_backend.sv && vvp $(BUILD)/tb_backend
+	iverilog -g2012 $(DEFS) -o $(BUILD)/tb_cmd     $(RTL_COMMON) $(RTL_NVME) sim/unit/tb_cmd_decoder.sv && vvp $(BUILD)/tb_cmd
+	iverilog -g2012 $(DEFS) -o $(BUILD)/tb_qmgr    $(RTL_COMMON) $(RTL_NVME) sim/unit/tb_queue_mgr.sv && vvp $(BUILD)/tb_qmgr
+	iverilog -g2012 $(DEFS) -o $(BUILD)/tb_usb     $(RTL_COMMON) $(RTL_USB) sim/unit/tb_usb_framer.sv && vvp $(BUILD)/tb_usb
 	iverilog -g2012 $(DEFS) -o $(BUILD)/tb_init    $(RTL_COMMON) $(RTL_NVME) sim/integration/tb_init_sequence.sv && vvp $(BUILD)/tb_init
 	iverilog -g2012 $(DEFS) -o $(BUILD)/tb_dma     $(RTL_COMMON) $(RTL_DMA) sim/integration/tb_dma_prp.sv && vvp $(BUILD)/tb_dma
 
